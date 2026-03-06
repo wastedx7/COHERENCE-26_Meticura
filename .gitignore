@@ -1,2 +1,6 @@
 **/**.env
 planning/**
+**/.venv
+**/**.md
+**/__pycache__
+.gitignore
