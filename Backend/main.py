@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import auth_example, lapse
+from routers import auth_example, lapse, anomalies
 from database import init_db, verify_db_connection
 
 # Create FastAPI app with metadata
@@ -81,6 +81,9 @@ app.include_router(auth_example.router, prefix=settings.API_V1_PREFIX)
 
 # Lapse prediction routes (prefix /api/lapse)
 app.include_router(lapse.router, prefix=settings.API_V1_PREFIX)
+
+# Anomaly detection routes (prefix /api/anomalies)
+app.include_router(anomalies.router, prefix=settings.API_V1_PREFIX)
 
 # TODO: Add more routers as they are implemented
 # from routers import budget, anomalies, predictions, reallocation
