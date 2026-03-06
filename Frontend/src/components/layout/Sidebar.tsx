@@ -1,5 +1,5 @@
 import { NavLink } from 'react-router-dom';
-import { AppRole } from '../../lib/permissions';
+import type { AppRole } from '../../lib/permissions';
 
 type LinkItem = { to: string; label: string; roles: AppRole[] };
 

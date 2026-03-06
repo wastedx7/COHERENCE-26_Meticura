@@ -2,7 +2,7 @@ import React, { useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useAnomaly } from '../../context/AnomalyContext';
 import { ChevronLeft, RefreshCw, AlertTriangle, ShieldCheck, FileText } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
 const mockFeatureData = [
     { name: 'velocity', val: -0.8 },

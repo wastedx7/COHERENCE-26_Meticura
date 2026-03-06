@@ -1,6 +1,26 @@
-import React, { createContext, useContext, useState, ReactNode } from 'react';
+import React, { createContext, useContext, useState } from 'react';
+import type { ReactNode } from 'react';
 
-const API_BASE = 'http://localhost:8000/api';
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8000/api';
+
+const normalizeSuggestion = (row: any) => ({
+    id: row.id,
+    donor_id: row.donor_dept_id,
+    recipient_id: row.recipient_dept_id,
+    amount: row.suggested_amount,
+    priority: row.priority,
+    status: row.status,
+    reason: row.reason,
+    donor_department_id: row.donor_dept_id,
+    recipient_department_id: row.recipient_dept_id,
+    suggested_amount: row.suggested_amount,
+    donor_predicted_lapse: row.donor_predicted_lapse ?? 0,
+    recipient_predicted_deficit: row.recipient_predicted_deficit ?? 0,
+    same_district: row.same_district ?? false,
+    notes: row.notes,
+    approved_at: row.approved_at,
+    executed_at: row.executed_at
+});
 
 interface ReallocationContextType {
     suggestions: any[];
@@ -33,10 +53,20 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
             const res = await fetch(`${API_BASE}/reallocation/suggestions?status=${status}&limit=50`, { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
-                setSuggestions(Array.isArray(data) ? data : data.items || []);
+                setSuggestions((Array.isArray(data) ? data : []).map(normalizeSuggestion));
             }
             const sumRes = await fetch(`${API_BASE}/reallocation/summary`, { headers: getHeaders() });
-            if (sumRes.ok) setSummary(await sumRes.json());
+            if (sumRes.ok) {
+                const data = await sumRes.json();
+                setSummary({
+                    pending: data.pending_count || 0,
+                    approved: data.approved_count || 0,
+                    rejected: data.rejected_count || 0,
+                    executed: data.executed_count || 0,
+                    total_amount_pending: data.total_amount_pending || 0,
+                    total_amount_approved: data.total_amount_approved || 0
+                });
+            }
         } catch (e) { console.error(e); } finally { setIsLoading(false); }
     };
 
@@ -44,7 +74,7 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(true);
         try {
             const res = await fetch(`${API_BASE}/reallocation/suggestion/${id}`, { headers: getHeaders() });
-            if (res.ok) setSelectedSuggestion(await res.json());
+            if (res.ok) setSelectedSuggestion(normalizeSuggestion(await res.json()));
         } catch (e) { console.error(e); } finally { setIsLoading(false); }
     };
 
@@ -55,7 +85,7 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
                 headers: getHeaders(),
                 body: JSON.stringify({ notes })
             });
-            if (res.ok) fetchSuggestions();
+            if (res.ok) await fetchSuggestions();
         } catch (e) { console.error(e); }
     };
 
@@ -66,7 +96,7 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
                 headers: getHeaders(),
                 body: JSON.stringify({ reason })
             });
-            if (res.ok) fetchSuggestions();
+            if (res.ok) await fetchSuggestions();
         } catch (e) { console.error(e); }
     };
 
@@ -76,7 +106,7 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
                 method: 'POST',
                 headers: getHeaders()
             });
-            if (res.ok) fetchSuggestions('executed');
+            if (res.ok) await fetchSuggestions('executed');
         } catch (e) { console.error(e); }
     };
 

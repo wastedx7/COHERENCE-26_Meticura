@@ -28,6 +28,11 @@ import EnginePage from './pages/engine';
 import MyModelsPage from './pages/my-models';
 import TransactionsPage from './pages/transactions';
 import CitizenPage from './pages/citizen';
+import { BudgetProvider } from './context/BudgetContext';
+import { AnomalyProvider } from './context/AnomalyContext';
+import { LapseProvider } from './context/LapseContext';
+import { ReallocationProvider } from './context/ReallocationContext';
+import { DashboardProvider } from './context/DashboardContext';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
   const { isAuthenticated, role, isLoading } = useAuth();
@@ -44,6 +49,20 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
   return <>{children}</>;
 };
 
+const DataProviders = ({ children }: { children: React.ReactNode }) => {
+  return (
+    <DashboardProvider>
+      <BudgetProvider>
+        <AnomalyProvider>
+          <LapseProvider>
+            <ReallocationProvider>{children}</ReallocationProvider>
+          </LapseProvider>
+        </AnomalyProvider>
+      </BudgetProvider>
+    </DashboardProvider>
+  );
+};
+
 export default function App() {
   return (
     <AuthProvider>
@@ -57,48 +76,50 @@ export default function App() {
         {/* Dashboard / Protected Routes */}
         <Route element={
           <ProtectedRoute>
-            <AppShell />
+            <DataProviders>
+              <AppShell />
+            </DataProviders>
           </ProtectedRoute>
         }>
-          <Route path="dashboard" element={<DashboardPage />} />
+          <Route path="/dashboard" element={<DashboardPage />} />
 
           {/* Budget */}
-          <Route path="budget" element={<BudgetPage />} />
-          <Route path="budget/department/:id" element={<DeptBudgetPage />} />
-          <Route path="budget/compare" element={<BudgetComparePage />} />
-          <Route path="budget/forecast" element={<ForecastPage />} />
+          <Route path="/budget" element={<BudgetPage />} />
+          <Route path="/budget/department/:id" element={<DeptBudgetPage />} />
+          <Route path="/budget/compare" element={<BudgetComparePage />} />
+          <Route path="/budget/forecast" element={<ForecastPage />} />
 
           {/* Anomalies */}
-          <Route path="anomalies" element={<AnomalyPage />} />
-          <Route path="anomalies/critical" element={<CriticalAnomaliesPage />} />
-          <Route path="anomalies/department/:id" element={<DeptAnomalyPage />} />
-          <Route path="anomalies/advanced" element={<AdvancedAnomalyPage />} />
+          <Route path="/anomalies" element={<AnomalyPage />} />
+          <Route path="/anomalies/critical" element={<CriticalAnomaliesPage />} />
+          <Route path="/anomalies/department/:id" element={<DeptAnomalyPage />} />
+          <Route path="/anomalies/advanced" element={<AdvancedAnomalyPage />} />
 
           {/* Lapse */}
-          <Route path="lapse" element={<LapsePage />} />
-          <Route path="lapse/department/:id" element={<DeptLapsePage />} />
+          <Route path="/lapse" element={<LapsePage />} />
+          <Route path="/lapse/department/:id" element={<DeptLapsePage />} />
 
           {/* Reallocation */}
-          <Route path="reallocation" element={<ReallocationPage />} />
-          <Route path="reallocation/:id" element={<SuggestionDetailPage />} />
+          <Route path="/reallocation" element={<ReallocationPage />} />
+          <Route path="/reallocation/:id" element={<SuggestionDetailPage />} />
 
           {/* Tree */}
-          <Route path="tree" element={<TreePage />} />
+          <Route path="/tree" element={<TreePage />} />
 
           {/* Reports */}
-          <Route path="reports" element={<ReportsPage />} />
+          <Route path="/reports" element={<ReportsPage />} />
 
           {/* Engine */}
-          <Route path="engine" element={<EnginePage />} />
+          <Route path="/engine" element={<EnginePage />} />
 
           {/* ML Models */}
-          <Route path="my-models" element={<MyModelsPage />} />
+          <Route path="/my-models" element={<MyModelsPage />} />
 
           {/* Role-gated: Center Admin */}
-          <Route path="users" element={<ProtectedRoute allowedRoles={['center_admin']}><UsersPage /></ProtectedRoute>} />
+          <Route path="/users" element={<ProtectedRoute allowedRoles={['center_admin']}><UsersPage /></ProtectedRoute>} />
 
           {/* Role-gated: Dept Admin */}
-          <Route path="transactions" element={<ProtectedRoute allowedRoles={['dept_admin']}><TransactionsPage /></ProtectedRoute>} />
+          <Route path="/transactions" element={<ProtectedRoute allowedRoles={['dept_admin']}><TransactionsPage /></ProtectedRoute>} />
         </Route>
 
         {/* Citizen Dashboard (Public transparent portal) */}

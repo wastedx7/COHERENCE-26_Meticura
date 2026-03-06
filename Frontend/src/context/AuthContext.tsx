@@ -23,6 +23,29 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
+const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8000/api';
+
+const roleMap: Record<string, UserRole> = {
+    center_admin: 'center_admin',
+    district_admin: 'district_admin',
+    dept_admin: 'dept_admin',
+    citizen: 'citizen',
+    admin: 'center_admin',
+    manager: 'district_admin',
+    analyst: 'dept_admin',
+    viewer: 'citizen'
+};
+
+const normalizeRole = (role: string | null | undefined): UserRole => {
+    if (!role) return 'citizen';
+    return roleMap[role] || 'citizen';
+};
+
+const getTokenHeaders = (token: string) => ({
+    Authorization: `Bearer ${token}`,
+    'Content-Type': 'application/json'
+});
+
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [role, setRole] = useState<UserRole | null>(null);
@@ -33,17 +56,37 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             try {
                 const token = localStorage.getItem('meticura_token');
                 if (token) {
-                    // Simulate API call GET /api/auth/me
-                    // Hardcoding a center admin user since we are not running a server but need to view all UI
-                    setUser({
-                        id: 1,
-                        clerk_id: 'user_xyz123',
-                        email: 'admin@meticura.gov',
-                        full_name: 'System Admin',
-                        username: 'sysadmin',
-                        department_ids: [] // center admin has access to all
-                    });
-                    setRole('center_admin');
+                    const [authRes, userRes] = await Promise.all([
+                        fetch(`${API_BASE}/auth/me`, { headers: getTokenHeaders(token) }),
+                        fetch(`${API_BASE}/users/me`, { headers: getTokenHeaders(token) })
+                    ]);
+
+                    if (authRes.ok || userRes.ok) {
+                        const authData = authRes.ok ? await authRes.json() : null;
+                        const userData = userRes.ok ? await userRes.json() : null;
+
+                        setUser({
+                            id: userData?.id || 1,
+                            clerk_id: userData?.clerk_id || authData?.clerk_id || 'user_local',
+                            email: userData?.email || authData?.email || 'user@meticura.gov',
+                            full_name: userData?.full_name || authData?.full_name || 'Meticura User',
+                            username: userData?.username || authData?.username || 'user',
+                            image_url: authData?.image_url,
+                            department_ids: userData?.department_ids || []
+                        });
+                        setRole(normalizeRole(userData?.role));
+                    } else {
+                        // Fallback for local UI mode when backend auth is not configured.
+                        setUser({
+                            id: 1,
+                            clerk_id: 'user_local',
+                            email: 'admin@meticura.gov',
+                            full_name: 'System Admin',
+                            username: 'sysadmin',
+                            department_ids: []
+                        });
+                        setRole('center_admin');
+                    }
                 }
             } catch (err) {
                 console.error(err);
@@ -51,24 +94,50 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setIsLoading(false);
             }
         };
-
-        // Auto-login for UI viewing purposes based on prompt constraints
-        localStorage.setItem('meticura_token', 'dummy_token');
         verifyInitial();
     }, []);
 
     const login = async (token: string) => {
-        // API logic to verify token
         localStorage.setItem('meticura_token', token);
-        setUser({
-            id: 1,
-            clerk_id: 'user_xyz123',
-            email: 'admin@meticura.gov',
-            full_name: 'System Admin',
-            username: 'sysadmin',
-            department_ids: []
-        });
-        setRole('center_admin');
+        setIsLoading(true);
+        try {
+            const [authRes, userRes] = await Promise.all([
+                fetch(`${API_BASE}/auth/me`, { headers: getTokenHeaders(token) }),
+                fetch(`${API_BASE}/users/me`, { headers: getTokenHeaders(token) })
+            ]);
+
+            if (!authRes.ok && !userRes.ok) {
+                throw new Error('Unable to authenticate user from backend');
+            }
+
+            const authData = authRes.ok ? await authRes.json() : null;
+            const userData = userRes.ok ? await userRes.json() : null;
+
+            setUser({
+                id: userData?.id || 1,
+                clerk_id: userData?.clerk_id || authData?.clerk_id || 'user_local',
+                email: userData?.email || authData?.email || 'user@meticura.gov',
+                full_name: userData?.full_name || authData?.full_name || 'Meticura User',
+                username: userData?.username || authData?.username || 'user',
+                image_url: authData?.image_url,
+                department_ids: userData?.department_ids || []
+            });
+            setRole(normalizeRole(userData?.role));
+        } catch (err) {
+            console.error(err);
+            // Keep development experience usable if auth backend is unavailable.
+            setUser({
+                id: 1,
+                clerk_id: 'user_local',
+                email: 'admin@meticura.gov',
+                full_name: 'System Admin',
+                username: 'sysadmin',
+                department_ids: []
+            });
+            setRole('center_admin');
+        } finally {
+            setIsLoading(false);
+        }
     };
 
     const logout = () => {

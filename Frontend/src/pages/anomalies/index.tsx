@@ -5,19 +5,11 @@ import {
     AlertTriangle,
     Search,
     Filter,
-    PieChart,
     ChevronRight,
     ShieldAlert,
     AlertCircle
 } from 'lucide-react';
-import { PieChart as RechartsPie, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
-
-const severityColors: any = {
-    high: '#ef4444',
-    medium: '#f59e0b',
-    low: '#3b82f6',
-    critical: '#b91c1c'
-};
+import { PieChart as RechartsPieChart, Pie, Cell, ResponsiveContainer } from 'recharts';
 
 const verdictColors: any = {
     normal: '#10b981',
@@ -36,6 +28,7 @@ const mockSummaryData = [
 export default function AnomalyPage() {
     const { anomalies, summary, isLoading, fetchAll } = useAnomaly();
     const [searchTerm, setSearchTerm] = useState('');
+    const verdictColorValues = Object.values(verdictColors) as string[];
 
     useEffect(() => {
         fetchAll();
@@ -64,7 +57,7 @@ export default function AnomalyPage() {
                         {['Normal', 'Warning', 'Alert', 'Critical'].map((v, i) => (
                             <div key={v} className="bg-white/40 border border-slate-200/60 rounded-xl p-4 text-center shadow-sm">
                                 <p className="text-sm font-semibold text-slate-500 uppercase">{v}</p>
-                                <p className="text-3xl font-bold mt-1 tracking-tight" style={{ color: Object.values(verdictColors)[i] }}>
+                                <p className="text-3xl font-bold mt-1 tracking-tight" style={{ color: verdictColorValues[i] }}>
                                     {summary?.[v.toLowerCase()] || [140, 35, 15, 10][i]}
                                 </p>
                             </div>
@@ -75,11 +68,13 @@ export default function AnomalyPage() {
                     <h3 className="text-sm font-semibold text-slate-600 absolute top-6 left-6 z-10">Verdict Distribution</h3>
                     <div className="w-full h-40 mt-4">
                         <ResponsiveContainer width="100%" height="100%">
-                            <RechartsPie data={mockSummaryData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value">
-                                {mockSummaryData.map((entry, index) => (
-                                    <Cell key={`cell-${index}`} fill={entry.color} />
-                                ))}
-                            </RechartsPie>
+                            <RechartsPieChart>
+                                <Pie data={mockSummaryData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value">
+                                    {mockSummaryData.map((entry, index) => (
+                                        <Cell key={`cell-${index}`} fill={entry.color} />
+                                    ))}
+                                </Pie>
+                            </RechartsPieChart>
                         </ResponsiveContainer>
                     </div>
                 </div>

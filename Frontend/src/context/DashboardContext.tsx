@@ -1,4 +1,5 @@
-import React, { createContext, useContext, useState, useCallback, ReactNode } from 'react';
+import React, { createContext, useContext, useState, useCallback } from 'react';
+import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
 
 interface DashboardContextType {
@@ -15,7 +16,7 @@ const DashboardContext = createContext<DashboardContextType>({} as DashboardCont
 const API_BASE = 'http://localhost:8000/api';
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
-    const { user } = useAuth();
+    useAuth();
     const [budgetOverview, setBudgetOverview] = useState<any>(null);
     const [criticalAnomalies, setCriticalAnomalies] = useState<any[]>([]);
     const [lapseSummary, setLapseSummary] = useState<any>(null);
@@ -32,19 +33,30 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                 fetch(`${API_BASE}/lapse/summary`, { headers })
             ]);
 
-            if (budgetRes.ok) setBudgetOverview(await budgetRes.json());
+            if (budgetRes.ok) {
+                const budget = await budgetRes.json();
+                const summary = budget?.summary || {};
+                setBudgetOverview({
+                    total_allocated: summary.total_allocated_budget ?? 0,
+                    total_spent: summary.total_spent ?? 0,
+                    avg_utilization: summary.average_utilization_percentage ?? 0,
+                    status_counts: budget?.departments_by_status || {}
+                });
+            }
             if (anomaliesRes.ok) {
                 const data = await anomaliesRes.json();
-                // Fallback for flat array vs paginated structure
-                setCriticalAnomalies(Array.isArray(data) ? data : data.items || []);
+                setCriticalAnomalies(data?.data || []);
             }
-            if (lapseRes.ok) setLapseSummary(await lapseRes.json());
+            if (lapseRes.ok) {
+                const data = await lapseRes.json();
+                setLapseSummary(data?.summary || {});
+            }
         } catch (err) {
             console.error("Dashboard fetch error", err);
         } finally {
             setIsLoading(false);
         }
-    }, [user]);
+    }, []);
 
     return (
         <DashboardContext.Provider value={{ budgetOverview, criticalAnomalies, lapseSummary, isLoading, fetchDashboardData }}>
