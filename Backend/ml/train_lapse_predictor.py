@@ -74,7 +74,7 @@ def prepare_lapse_data(transactions_df, allocations_df):
     return lapse_data
 
 
-def train_lapse_model(lapse_data, max_days=365):
+def train_department_models(lapse_data, max_days=365):
     """
     Train a linear regression model for each department to predict lapse point
     Lapse point = day when budget depleted (spend_pct reaches 100%)
@@ -166,6 +166,27 @@ def save_predictions(predictions, filename='lapse_predictions.json'):
     return output_path
 
 
+def train_lapse_model() -> dict:
+    """Train lapse models and return summary metrics for task orchestration."""
+    transactions_df = load_transactions()
+    allocations_df = load_allocations()
+    lapse_data = prepare_lapse_data(transactions_df, allocations_df)
+    predictions, r2_scores, _ = train_department_models(lapse_data)
+    metrics = evaluate_model(predictions)
+    save_predictions(predictions)
+
+    metrics_dir = Path(__file__).parent / "artifacts"
+    metrics_dir.mkdir(exist_ok=True)
+    with open(metrics_dir / "lapse_metrics.json", 'w') as f:
+        json.dump(metrics, f, indent=2)
+
+    return {
+        "r2_score": float(np.mean(r2_scores)) if r2_scores else 0.0,
+        "total_departments": int(len(predictions)),
+        "metrics": metrics,
+    }
+
+
 def main():
     print(" Training Lapse Predictor Model...")
 
@@ -182,7 +203,7 @@ def main():
     
     # Train models
     print("\n Training linear regression models...")
-    predictions, r2_scores, dept_ids = train_lapse_model(lapse_data)
+    predictions, r2_scores, dept_ids = train_department_models(lapse_data)
     print(f"   Trained {len(predictions)} models")
     print(f"   Average R² score: {np.mean(r2_scores):.4f}")
     

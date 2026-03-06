@@ -5,10 +5,74 @@ Used by both Celery background tasks and on-demand API triggers
 """
 import logging
 from datetime import datetime
+from dataclasses import dataclass, field
 from sqlalchemy.orm import Session
 from typing import Dict, List, Optional
 
 logger = logging.getLogger(__name__)
+
+
+@dataclass
+class PipelineRun:
+    run_id: str
+    trigger: str
+    started_at: datetime
+    stage_statuses: Dict[str, str] = field(default_factory=lambda: {
+        "stage1": "pending",
+        "stage2": "pending",
+        "stage3": "pending",
+    })
+    completed_at: Optional[datetime] = None
+    errors: List[str] = field(default_factory=list)
+
+    def to_dict(self) -> Dict[str, object]:
+        return {
+            "run_id": self.run_id,
+            "trigger": self.trigger,
+            "started_at": self.started_at.isoformat(),
+            "stage_statuses": self.stage_statuses,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "errors": self.errors,
+        }
+
+
+def execute_full_pipeline(db: Session, trigger: str = "scheduled") -> Dict[str, object]:
+    """Run Stage 1 -> Stage 2 -> Stage 3 with explicit run-state tracking."""
+    run = PipelineRun(
+        run_id=f"run-{datetime.utcnow().strftime('%Y%m%d%H%M%S')}",
+        trigger=trigger,
+        started_at=datetime.utcnow(),
+    )
+
+    try:
+        run.stage_statuses["stage1"] = "running"
+        anomalies = compute_all_anomalies(db)
+        run.stage_statuses["stage1"] = "completed"
+
+        run.stage_statuses["stage2"] = "running"
+        predictions = predict_all_departments(db)
+        run.stage_statuses["stage2"] = "completed"
+
+        run.stage_statuses["stage3"] = "running"
+        suggestions = generate_reallocation_suggestions(db)
+        run.stage_statuses["stage3"] = "completed"
+
+        run.completed_at = datetime.utcnow()
+        return {
+            **run.to_dict(),
+            "counts": {
+                "anomalies": anomalies,
+                "predictions": predictions,
+                "suggestions": suggestions,
+            },
+        }
+    except Exception as exc:
+        run.errors.append(str(exc))
+        for stage, value in run.stage_statuses.items():
+            if value == "running":
+                run.stage_statuses[stage] = "failed"
+        run.completed_at = datetime.utcnow()
+        raise
 
 
 def compute_all_anomalies(db: Session) -> int:
@@ -44,25 +108,36 @@ def compute_all_anomalies(db: Session) -> int:
                     # Create/update anomaly record
                     existing = db.query(Anomaly).filter(
                         Anomaly.dept_id == dept.dept_id,
-                        Anomaly.resolved_at.is_(None)
+                        Anomaly.status != "resolved"
                     ).first()
+
+                    reason_parts = []
+                    if result.rule_flagged:
+                        reason_parts.append(
+                            "; ".join([v.reason for v in result.rule_violations[:3]]) or "Rule violations detected"
+                        )
+                    if result.ml_flagged:
+                        reason_parts.append(f"ML flagged score={result.ml_score:.4f}")
+                    reason = " | ".join(reason_parts) if reason_parts else "Anomaly detected"
                     
                     if existing:
                         # Update existing unresolved anomaly
-                        existing.severity = result.combined_verdict
-                        existing.rule_violations = result.rule_violations
-                        existing.ml_flagged = result.ml_flagged
-                        existing.ml_score = result.ml_score
+                        existing.anomaly_type = "combined"
+                        existing.anomaly_score = result.ml_score
+                        existing.confidence = result.ml_confidence
+                        existing.reason = reason
+                        existing.status = "open"
                         existing.updated_at = datetime.utcnow()
                     else:
                         # Create new anomaly
                         anomaly = Anomaly(
                             dept_id=dept.dept_id,
-                            severity=result.combined_verdict,
-                            detection_type="ml_and_rules",
-                            rule_violations=result.rule_violations,
-                            ml_flagged=result.ml_flagged,
-                            ml_score=result.ml_score,
+                            anomaly_type="combined",
+                            anomaly_score=result.ml_score,
+                            is_anomaly=True,
+                            confidence=result.ml_confidence,
+                            reason=reason,
+                            status="open",
                             created_at=datetime.utcnow(),
                         )
                         db.add(anomaly)
@@ -108,21 +183,34 @@ def compute_anomalies_for_department(db: Session, department_id: int) -> Optiona
             # Create/update anomaly record
             existing = db.query(Anomaly).filter(
                 Anomaly.dept_id == department_id,
-                Anomaly.resolved_at.is_(None)
+                Anomaly.status != "resolved"
             ).first()
+
+            reason_parts = []
+            if result.rule_flagged:
+                reason_parts.append(
+                    "; ".join([v.reason for v in result.rule_violations[:3]]) or "Rule violations detected"
+                )
+            if result.ml_flagged:
+                reason_parts.append(f"ML flagged score={result.ml_score:.4f}")
+            reason = " | ".join(reason_parts) if reason_parts else "Anomaly detected"
             
             if existing:
-                existing.severity = result.combined_verdict
-                existing.ml_flagged = result.ml_flagged
-                existing.ml_score = result.ml_score
+                existing.anomaly_type = "combined"
+                existing.anomaly_score = result.ml_score
+                existing.confidence = result.ml_confidence
+                existing.reason = reason
+                existing.status = "open"
                 existing.updated_at = datetime.utcnow()
             else:
                 anomaly = Anomaly(
                     dept_id=department_id,
-                    severity=result.combined_verdict,
-                    detection_type="ml_and_rules",
-                    ml_flagged=result.ml_flagged,
-                    ml_score=result.ml_score,
+                    anomaly_type="combined",
+                    anomaly_score=result.ml_score,
+                    is_anomaly=True,
+                    confidence=result.ml_confidence,
+                    reason=reason,
+                    status="open",
                     created_at=datetime.utcnow(),
                 )
                 db.add(anomaly)
@@ -369,6 +457,8 @@ def generate_reallocation_suggestions(db: Session) -> int:
 
 # Export functions
 __all__ = [
+    "PipelineRun",
+    "execute_full_pipeline",
     "compute_all_anomalies",
     "compute_anomalies_for_department",
     "predict_all_departments",

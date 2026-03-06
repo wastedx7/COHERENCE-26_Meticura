@@ -129,8 +129,10 @@ def retrain_models_and_pipeline(self):
         logger.info("🔄 [RETRAIN] Starting model retraining and pipeline...")
         self.update_state(state="PROGRESS", meta={"status": "Retraining models..."})
         
+        from pathlib import Path
         from ml.train_lapse_predictor import train_lapse_model
         from ml.train import train_anomaly_model
+        from ml.train_ensemble import train_ensemble
         from database import SessionLocal
         from services.pipeline_service import compute_all_anomalies, predict_all_departments, generate_reallocation_suggestions
         
@@ -148,6 +150,22 @@ def retrain_models_and_pipeline(self):
             self.update_state(state="PROGRESS", meta={"status": "Retraining anomaly model..."})
             anomaly_metrics = train_anomaly_model()
             logger.info(f"✅ [RETRAIN-ANOMALY] Completed with accuracy = {anomaly_metrics.get('accuracy', 'N/A')}")
+
+            # Retrain Ensemble and calibrate threshold
+            logger.info("🧠 [RETRAIN] Training ensemble calibration model...")
+            self.update_state(state="PROGRESS", meta={"status": "Retraining ensemble..."})
+            ml_root = Path(__file__).resolve().parent / "ml"
+            ensemble_metrics = train_ensemble(
+                features_file=ml_root / "output" / "features.csv",
+                departments_file=ml_root / "output" / "departments.csv",
+                artifacts_dir=ml_root / "artifacts",
+                test_size=0.25,
+                random_state=42,
+            )
+            logger.info(
+                "✅ [RETRAIN-ENSEMBLE] Completed with accuracy = %s",
+                ensemble_metrics.get("best_accuracy"),
+            )
             
             # Execute full pipeline with fresh models
             logger.info("🚀 [RETRAIN] Executing full pipeline with new models...")
@@ -165,6 +183,7 @@ def retrain_models_and_pipeline(self):
                 "models_retrained": True,
                 "lapse_r2": lapse_metrics.get('r2_score'),
                 "anomaly_accuracy": anomaly_metrics.get('accuracy'),
+                "ensemble_accuracy": ensemble_metrics.get('best_accuracy'),
                 "anomalies": anomalies_count,
                 "predictions": predictions_count,
                 "suggestions": suggestions_count,
@@ -191,14 +210,14 @@ def run_single_department_pipeline(self, department_id: int):
     """
     Execute pipeline for a single department (triggered after new transaction).
     
-    Fast Stage 1 + Stage 2 only (no reallocation recalc needed immediately).
+    Fast Stage 1 only (anomaly detection) as immediate post-transaction trigger.
     """
     try:
         logger.info(f"🚀 [SINGLE-DEPT] Running pipeline for department {department_id}...")
         self.update_state(state="PROGRESS", meta={"status": f"Processing department {department_id}..."})
         
         from database import SessionLocal
-        from services.pipeline_service import compute_anomalies_for_department, predict_department
+        from services.pipeline_service import compute_anomalies_for_department
         
         db = SessionLocal()
         
@@ -207,10 +226,6 @@ def run_single_department_pipeline(self, department_id: int):
             anomaly = compute_anomalies_for_department(db, department_id)
             logger.info(f"✅ [SINGLE-DEPT STAGE 1] Anomaly detection completed for dept {department_id}")
             
-            # Stage 2: Prediction for this department
-            prediction = predict_department(db, department_id)
-            logger.info(f"✅ [SINGLE-DEPT STAGE 2] Prediction completed for dept {department_id}")
-            
             db.commit()
             
             result = {
@@ -218,8 +233,7 @@ def run_single_department_pipeline(self, department_id: int):
                 "timestamp": datetime.now().isoformat(),
                 "department_id": department_id,
                 "anomaly_detected": anomaly is not None,
-                "prediction_generated": prediction is not None,
-                "message": f"Single department pipeline completed for dept {department_id}"
+                "message": f"Single department anomaly stage completed for dept {department_id}"
             }
             
             logger.info(f"🎉 [SINGLE-DEPT] COMPLETED: {result}")

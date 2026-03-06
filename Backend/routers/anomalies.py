@@ -3,9 +3,14 @@ Anomaly Detection API Routes
 Endpoints for rule-based and ML-based anomaly detection
 """
 from fastapi import APIRouter, Depends, HTTPException, status, Query
+from datetime import datetime
 from typing import Optional
+from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
 from auth import require_auth, AuthenticatedUser
+from database import get_db
+from database.models import Anomaly
 from services.anomaly_service import AnomalyService
 from ml.rules import RuleEngine
 
@@ -22,6 +27,10 @@ router = APIRouter(
 # Initialize service
 anomaly_service = AnomalyService()
 rule_engine = RuleEngine()
+
+
+class ResolveAnomalyRequest(BaseModel):
+    notes: Optional[str] = None
 
 
 @router.get("/health")
@@ -509,4 +518,31 @@ async def search_anomalies(
         },
         "count": len(filtered),
         "data": filtered,
+    }
+
+
+@router.post("/{anomaly_id}/resolve")
+async def resolve_anomaly(
+    anomaly_id: int,
+    payload: ResolveAnomalyRequest,
+    user: AuthenticatedUser = Depends(require_auth),
+    db: Session = Depends(get_db),
+):
+    """Resolve an anomaly row in database for audit/export workflows."""
+    row = db.query(Anomaly).filter(Anomaly.id == anomaly_id).first()
+    if not row:
+        raise HTTPException(status_code=404, detail=f"Anomaly {anomaly_id} not found")
+
+    row.status = "resolved"
+    row.reviewed_by = user.clerk_id
+    row.reviewed_at = row.reviewed_at or datetime.utcnow()
+    if payload.notes:
+        row.notes = payload.notes
+    db.commit()
+
+    return {
+        "success": True,
+        "anomaly_id": anomaly_id,
+        "status": row.status,
+        "reviewed_by": row.reviewed_by,
     }

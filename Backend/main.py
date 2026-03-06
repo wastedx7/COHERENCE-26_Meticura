@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import auth_example, lapse, anomalies, budget, users
+from routers import auth_example, lapse, anomalies, budget, users, predictions, internal
 from database import init_db, verify_db_connection
 from logging_config import configure_logging
 
@@ -108,6 +108,12 @@ app.include_router(reallocation.router, prefix=settings.API_V1_PREFIX)
 
 # Export routes (prefix /api/export)
 app.include_router(export.router, prefix=settings.API_V1_PREFIX)
+
+# Predictions routes (prefix /api/predictions)
+app.include_router(predictions.router, prefix=settings.API_V1_PREFIX)
+
+# Internal control routes (prefix /api/internal)
+app.include_router(internal.router, prefix=settings.API_V1_PREFIX)
 
 # TODO: Add more routers as they are implemented
 

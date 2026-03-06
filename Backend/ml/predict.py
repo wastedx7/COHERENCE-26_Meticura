@@ -39,12 +39,10 @@ def parse_args() -> argparse.Namespace:
     return parser.parse_args()
 
 
-def main() -> None:
-    args = parse_args()
-
-    df = pd.read_csv(args.features_file)
-    model = load(args.artifacts_dir / "model.pkl")
-    scaler = load(args.artifacts_dir / "scaler.pkl")
+def score_features(features_file: Path, artifacts_dir: Path, output_file: Path) -> dict:
+    df = pd.read_csv(features_file)
+    model = load(artifacts_dir / "model.pkl")
+    scaler = load(artifacts_dir / "scaler.pkl")
 
     X = df[FEATURE_COLUMNS].copy()
     X_scaled = scaler.transform(X)
@@ -52,14 +50,26 @@ def main() -> None:
     df["anomaly_score"] = model.score_samples(X_scaled)
     df["outlier_flag"] = model.predict(X_scaled)
     df["is_anomaly"] = (df["outlier_flag"] == -1).astype(int)
+    df["model"] = "isolation_forest"
 
-    args.output_file.parent.mkdir(parents=True, exist_ok=True)
-    df.to_csv(args.output_file, index=False)
+    output_file.parent.mkdir(parents=True, exist_ok=True)
+    df.to_csv(output_file, index=False)
+
+    return {
+        "rows": int(len(df)),
+        "anomaly_rows": int(df["is_anomaly"].sum()),
+        "output_file": str(output_file),
+    }
+
+
+def main() -> None:
+    args = parse_args()
+    result = score_features(args.features_file, args.artifacts_dir, args.output_file)
 
     print("Prediction complete")
-    print(f"rows: {len(df)}")
-    print(f"anomaly_rows: {int(df['is_anomaly'].sum())}")
-    print(f"output_file: {args.output_file}")
+    print(f"rows: {result['rows']}")
+    print(f"anomaly_rows: {result['anomaly_rows']}")
+    print(f"output_file: {result['output_file']}")
 
 
 if __name__ == "__main__":

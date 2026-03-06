@@ -8,7 +8,9 @@ from sqlalchemy.orm import Session
 from sqlalchemy import func, desc
 from datetime import datetime
 from typing import List, Optional
+from pydantic import BaseModel, Field
 
+from auth import require_auth, AuthenticatedUser
 from database import get_db
 from database.models import Department, BudgetAllocation, Transaction, LaspePrediction
 
@@ -41,6 +43,13 @@ class BudgetSummary:
             'utilization_percentage': round(self.utilization_percentage, 2),
             'status': self.status,
         }
+
+
+class TransactionCreateRequest(BaseModel):
+    amount: float = Field(..., gt=0)
+    category: str = Field(..., min_length=1, max_length=100)
+    description: Optional[str] = None
+    transaction_date: Optional[datetime] = None
 
 
 # ============================================================================
@@ -103,7 +112,10 @@ async def budget_health():
 
 
 @router.get("/overview")
-async def get_budget_overview(db: Session = Depends(get_db)):
+async def get_budget_overview(
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(require_auth),
+):
     """
     Get overview of all department budgets
     
@@ -148,7 +160,11 @@ async def get_budget_overview(db: Session = Depends(get_db)):
 
 
 @router.get("/department/{dept_id}")
-async def get_department_budget(dept_id: int, db: Session = Depends(get_db)):
+async def get_department_budget(
+    dept_id: int,
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(require_auth),
+):
     """
     Get detailed budget info for a specific department
     
@@ -196,7 +212,8 @@ async def get_department_budget(dept_id: int, db: Session = Depends(get_db)):
 async def get_departments_by_status(
     status: str = Path(..., description="Status: on-track, at-risk, or exceeded"),
     limit: int = Query(10, ge=1, le=100),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(require_auth),
 ):
     """
     Get all departments with a specific budget status
@@ -239,7 +256,8 @@ async def get_departments_by_status(
 @router.get("/top-utilization")
 async def get_top_utilization(
     limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(require_auth),
 ):
     """
     Get departments with highest budget utilization
@@ -270,7 +288,8 @@ async def get_top_utilization(
 @router.get("/comparison")
 async def compare_departments(
     dept_ids: List[int] = Query(..., description="Comma-separated list of department IDs"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(require_auth),
 ):
     """
     Compare budgets across multiple departments
@@ -322,7 +341,8 @@ async def compare_departments(
 @router.get("/forecast")
 async def budget_forecast(
     limit: int = Query(10, ge=1, le=50),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(require_auth),
 ):
     """
     Get budget forecast based on lapse predictions
@@ -366,7 +386,8 @@ async def list_all_budgets(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     status: Optional[str] = Query(None, description="Filter by status: on-track, at-risk, exceeded"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(require_auth),
 ):
     """
     List all department budgets with optional filtering
@@ -402,3 +423,50 @@ async def list_all_budgets(
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
+
+
+@router.post("/departments/{dept_id}/transactions")
+async def create_department_transaction(
+    dept_id: int,
+    payload: TransactionCreateRequest,
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(require_auth),
+):
+    """Create a transaction row for a department and trigger single-department ML pipeline."""
+    dept = db.query(Department).filter(Department.dept_id == dept_id).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail=f"Department {dept_id} not found")
+
+    txn_date = payload.transaction_date or datetime.utcnow()
+    txn = Transaction(
+        dept_id=dept_id,
+        amount=float(payload.amount),
+        date=txn_date,
+        category=payload.category,
+        description=payload.description,
+        created_at=datetime.utcnow(),
+    )
+    db.add(txn)
+    db.commit()
+    db.refresh(txn)
+
+    trigger_status = "skipped"
+    try:
+        from celery_app import run_single_department_pipeline
+
+        run_single_department_pipeline.delay(dept_id)
+        trigger_status = "queued"
+    except Exception:
+        # Fallback to direct compute when Celery worker is not available.
+        from services.pipeline_service import compute_anomalies_for_department
+
+        compute_anomalies_for_department(db, dept_id)
+        trigger_status = "executed_inline"
+
+    return {
+        "success": True,
+        "transaction_id": txn.id,
+        "department_id": dept_id,
+        "amount": txn.amount,
+        "pipeline_trigger": trigger_status,
+    }

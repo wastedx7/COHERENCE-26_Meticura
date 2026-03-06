@@ -69,6 +69,9 @@ class AnomalyService:
     def __init__(self):
         """Initialize service"""
         self.rule_engine = RuleEngine()
+        self._artifacts_dir = Path(__file__).parent.parent / "ml" / "artifacts"
+        self._ensemble_file = self._artifacts_dir / "ensemble_scored_features.csv"
+        self._ensemble_metrics_file = self._artifacts_dir / "ensemble_metrics.json"
     
     
     def detect_anomalies(
@@ -110,10 +113,10 @@ class AnomalyService:
             result.ml_flagged = isolation_forest_score < -0.5  # Tune this threshold
             result.ml_confidence = min(1.0, abs(isolation_forest_score))
         else:
-            # Would call model.predict() here
-            # For now, return placeholder
-            result.ml_score = 0.0
-            result.ml_confidence = 0.0
+            ml = self._load_ensemble_ml_signal(dept_id)
+            result.ml_score = ml["score"]
+            result.ml_flagged = ml["is_anomaly"]
+            result.ml_confidence = ml["confidence"]
         
         # 2. Rule-Based Detection
         violations = self.rule_engine.evaluate_all_rules(
@@ -130,6 +133,34 @@ class AnomalyService:
         self._combine_detections(result)
         
         return result
+
+
+    def _load_ensemble_ml_signal(self, dept_id: int) -> dict:
+        """Load ML ensemble signal from artifact outputs for department runtime scoring."""
+        if not self._ensemble_file.exists():
+            return {"score": 0.0, "is_anomaly": False, "confidence": 0.0}
+
+        try:
+            scored = pd.read_csv(self._ensemble_file)
+            rows = scored[scored["dept_id"] == dept_id]
+            if rows.empty:
+                return {"score": 0.0, "is_anomaly": False, "confidence": 0.0}
+
+            row = rows.sort_values("fiscal_year").iloc[-1]
+            score = float(row.get("ensemble_score", 0.0))
+            is_anomaly = bool(int(row.get("ensemble_is_anomaly", 0)))
+
+            threshold = float(row.get("ensemble_threshold", 0.5))
+            if self._ensemble_metrics_file.exists():
+                with open(self._ensemble_metrics_file, "r", encoding="utf-8") as f:
+                    metrics = json.load(f)
+                threshold = float(metrics.get("best_threshold", threshold))
+
+            # Confidence increases as score moves away from threshold.
+            confidence = min(1.0, abs(score - threshold) * 2.0)
+            return {"score": score, "is_anomaly": is_anomaly, "confidence": confidence}
+        except Exception:
+            return {"score": 0.0, "is_anomaly": False, "confidence": 0.0}
     
     
     def _load_department_data(self, dept_id: int) -> Tuple[pd.DataFrame, float]:
