@@ -3,3 +3,10 @@ numpy
 pandas
 scikit-learn
 joblib
+fastapi
+uvicorn[standard]
+python-dotenv
+pydantic-settings
+httpx
+pyjwt[crypto]
+clerk-backend-api
