@@ -287,3 +287,226 @@ async def rescan_department(
         "department_id": dept_id,
         "detection": result.to_dict(),
     }
+
+
+# =====================================================
+# Advanced Filtering Endpoints
+# =====================================================
+
+@router.get("/advanced/by-severity")
+async def filter_by_severity(
+    min_severity: str = Query("low", description="Minimum severity: low, medium, high, critical"),
+    max_severity: Optional[str] = Query(None, description="Maximum severity: low, medium, high, critical"),
+    limit: int = Query(100, ge=1, le=1000),
+    user: AuthenticatedUser = Depends(require_auth)
+):
+    """
+    Filter anomalies by severity level
+    
+    **Requires Authentication**
+    
+    **Parameters:**
+    - min_severity: Minimum severity level to include
+    - max_severity: Maximum severity level (optional)
+    - limit: Max results to return
+    
+    Returns:
+    - Departments with rule violations matching severity criteria
+    """
+    severity_order = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+    
+    if min_severity not in severity_order:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"Invalid severity: {min_severity}"
+        )
+    
+    min_val = severity_order[min_severity]
+    max_val = severity_order.get(max_severity, 3) if max_severity else 3
+    
+    all_results = anomaly_service.batch_detect()
+    
+    # Filter by severity range
+    filtered = []
+    for result in all_results:
+        for violation in result.rule_violations:
+            sev_val = severity_order.get(violation.severity, 0)
+            if min_val <= sev_val <= max_val:
+                filtered.append({
+                    'department_id': result.department_id,
+                    'rule_name': violation.rule_name,
+                    'severity': violation.severity,
+                    'score': violation.score,
+                    'reason': violation.reason,
+                })
+                break
+    
+    # Sort by severity (highest first)
+    filtered = sorted(
+        filtered,
+        key=lambda x: severity_order.get(x['severity'], 0),
+        reverse=True
+    )[:limit]
+    
+    return {
+        "success": True,
+        "filter": {
+            "min_severity": min_severity,
+            "max_severity": max_severity or "critical"
+        },
+        "count": len(filtered),
+        "data": filtered,
+    }
+
+
+@router.get("/advanced/summary-stats")
+async def get_advanced_statistics(
+    group_by: str = Query("verdict", description="Group by: verdict, severity, rule"),
+    user: AuthenticatedUser = Depends(require_auth)
+):
+    """
+    Get detailed statistics with grouping
+    
+    **Requires Authentication**
+    
+    **Parameters:**
+    - group_by: Group results by "verdict", "severity", or "rule"
+    
+    Returns:
+    - Statistics grouped by requested field
+    - Count and percentage for each group
+    """
+    all_results = anomaly_service.batch_detect()
+    
+    if group_by == "verdict":
+        groups = {}
+        for result in all_results:
+            verdict = result.combined_verdict
+            groups[verdict] = groups.get(verdict, 0) + 1
+        
+        total = len(all_results)
+        stats = {
+            "group_field": "verdict",
+            "total": total,
+            "groups": [
+                {
+                    "name": verdict,
+                    "count": count,
+                    "percentage": round((count / total * 100) if total > 0 else 0, 2)
+                }
+                for verdict, count in sorted(groups.items(), key=lambda x: x[1], reverse=True)
+            ]
+        }
+    
+    elif group_by == "severity":
+        severity_groups = {}
+        for result in all_results:
+            for violation in result.rule_violations:
+                sev = violation.severity
+                severity_groups[sev] = severity_groups.get(sev, 0) + 1
+        
+        total = sum(severity_groups.values())
+        severity_order = {"low": 0, "medium": 1, "high": 2, "critical": 3}
+        stats = {
+            "group_field": "severity",
+            "total": total,
+            "groups": [
+                {
+                    "name": severity,
+                    "count": count,
+                    "percentage": round((count / total * 100) if total > 0 else 0, 2)
+                }
+                for severity, count in sorted(
+                    severity_groups.items(),
+                    key=lambda x: severity_order.get(x[0], 0),
+                    reverse=True
+                )
+            ]
+        }
+    
+    elif group_by == "rule":
+        rule_groups = {}
+        for result in all_results:
+            for violation in result.rule_violations:
+                rule = violation.rule_name
+                rule_groups[rule] = rule_groups.get(rule, 0) + 1
+        
+        total = sum(rule_groups.values())
+        stats = {
+            "group_field": "rule",
+            "total": total,
+            "groups": [
+                {
+                    "name": rule,
+                    "count": count,
+                    "percentage": round((count / total * 100) if total > 0 else 0, 2)
+                }
+                for rule, count in sorted(rule_groups.items(), key=lambda x: x[1], reverse=True)
+            ]
+        }
+    
+    else:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="group_by must be 'verdict', 'severity', or 'rule'"
+        )
+    
+    return {
+        "success": True,
+        "statistics": stats,
+    }
+
+
+@router.get("/advanced/search")
+async def search_anomalies(
+    query: str = Query(..., description="Search for departments by ID or name"),
+    verdict: Optional[str] = Query(None, description="Filter by verdict"),
+    min_score: float = Query(0.0, ge=0.0, le=1.0, description="Minimum anomaly score"),
+    limit: int = Query(50, ge=1, le=500),
+    user: AuthenticatedUser = Depends(require_auth)
+):
+    """
+    Advanced search with multiple filters
+    
+    **Requires Authentication**
+    
+    **Parameters:**
+    - query: Search term (dept ID like "DEPT001")
+    - verdict: Optional filter (normal, warning, alert, critical)
+    - min_score: Minimum anomaly score (0-1)
+    - limit: Max results
+    
+    Returns:
+    - Matching anomalies with all filters applied
+    """
+    all_results = anomaly_service.batch_detect()
+    
+    # Filter by search query (department ID)
+    filtered = []
+    for result in all_results:
+        if query.lower() in str(result.department_id).lower():
+            # Apply additional filters
+            if verdict and result.combined_verdict != verdict:
+                continue
+            if result.combined_score < min_score:
+                continue
+            
+            filtered.append(result.to_dict())
+    
+    # Sort by score (highest first)
+    filtered = sorted(
+        filtered,
+        key=lambda x: x['combined']['score'],
+        reverse=True
+    )[:limit]
+    
+    return {
+        "success": True,
+        "query": query,
+        "filters": {
+            "verdict": verdict,
+            "min_score": min_score
+        },
+        "count": len(filtered),
+        "data": filtered,
+    }

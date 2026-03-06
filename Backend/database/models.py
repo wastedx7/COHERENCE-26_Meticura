@@ -197,3 +197,29 @@ class AllocationHistor(Base):
     __table_args__ = (
         Index('idx_dept_history', 'dept_id', 'fiscal_year'),
     )
+
+
+class ReallocaitonSuggestion(Base):
+    """Budget reallocation suggestion from high-risk to low-risk departments"""
+    __tablename__ = "reallocation_suggestions"
+    
+    id = Column(Integer, primary_key=True)
+    donor_dept_id = Column(Integer, ForeignKey("departments.dept_id"), nullable=False, index=True)
+    recipient_dept_id = Column(Integer, ForeignKey("departments.dept_id"), nullable=False, index=True)
+    suggested_amount = Column(Float, nullable=False)
+    priority = Column(String(50), default="medium")  # low, medium, high, critical
+    reason = Column(Text)  # Why this reallocation is suggested
+    status = Column(String(50), default="pending")  # pending, approved, rejected, executed
+    approved_by = Column(String(255))  # User ID from Clerk
+    approved_at = Column(DateTime)
+    executed_at = Column(DateTime)
+    notes = Column(Text)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (
+        Index('idx_suggestion_status', 'status'),
+        Index('idx_suggestion_donor', 'donor_dept_id'),
+        Index('idx_suggestion_recipient', 'recipient_dept_id'),
+        Index('idx_suggestion_priority', 'priority'),
+    )

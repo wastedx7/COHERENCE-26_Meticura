@@ -1,13 +1,8 @@
 import React from 'react';
-import { AppRouter } from './app/router';
-import { AuthSync } from './components/auth/AuthSync';
+import LandingPage from './landing/page';
 
 function App() {
-  return (
-    <AuthSync>
-      <AppRouter />
-    </AuthSync>
-  );
+  return <LandingPage />;
 }
 
 export default App;

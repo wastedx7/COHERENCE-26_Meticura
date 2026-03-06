@@ -13,7 +13,7 @@ from auth.roles import Permission
 from database import get_db
 from database.models import User, UserRole
 
-router = APIRouter(prefix="/api/users", tags=["users"])
+router = APIRouter(prefix="/users", tags=["users"])
 
 
 # Pydantic schemas for request/response

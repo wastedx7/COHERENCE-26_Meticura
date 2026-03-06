@@ -12,3 +12,10 @@ pyjwt[crypto]
 clerk-backend-api
 sqlalchemy
 psycopg2-binary
+celery
+redis
+
+pytz
+python-json-logger
+reportlab
+openpyxl

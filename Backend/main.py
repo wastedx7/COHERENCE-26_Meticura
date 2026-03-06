@@ -2,12 +2,23 @@
 Budget Watchdog API
 Main application entry point with routes and middleware configuration
 """
+import logging
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
 from routers import auth_example, lapse, anomalies, budget, users
 from database import init_db, verify_db_connection
+from logging_config import configure_logging
+
+# Initialize structured logging
+configure_logging(
+    log_level="INFO",
+    log_file="logs/budget_watchdog.log",
+    json_format=True
+)
+
+logger = logging.getLogger(__name__)
 
 # Create FastAPI app with metadata
 app = FastAPI(
@@ -91,9 +102,14 @@ app.include_router(anomalies.router, prefix=settings.API_V1_PREFIX)
 # Budget analysis routes (prefix /api/budget)
 app.include_router(budget.router, prefix=settings.API_V1_PREFIX)
 
+# Reallocation routes (prefix /api/reallocation)
+from routers import reallocation, export
+app.include_router(reallocation.router, prefix=settings.API_V1_PREFIX)
+
+# Export routes (prefix /api/export)
+app.include_router(export.router, prefix=settings.API_V1_PREFIX)
+
 # TODO: Add more routers as they are implemented
-# app.include_router(predictions.router, prefix=f"{settings.API_V1_PREFIX}/predictions", tags=["Predictions"])
-# app.include_router(reallocation.router, prefix=f"{settings.API_V1_PREFIX}/reallocation", tags=["Reallocation"])
 
 
 # =====================================================
@@ -103,29 +119,44 @@ app.include_router(budget.router, prefix=settings.API_V1_PREFIX)
 @app.on_event("startup")
 async def startup_event():
     """Initialize resources on startup"""
-    print(" Budget Watchdog API starting...")
-    print(f" Environment: {settings.PROJECT_NAME}")
-    print(f" CORS Origins: {settings.ALLOWED_ORIGINS}")
+    logger.info("🚀 Budget Watchdog API starting...", extra={
+        "service": "budget_watchdog_api",
+        "component": "startup"
+    })
+    logger.info(f"📋 Environment: {settings.PROJECT_NAME}", extra={
+        "project_name": settings.PROJECT_NAME
+    })
+    logger.info(f"🔓 CORS Origins: {settings.ALLOWED_ORIGINS}", extra={
+        "cors_origins": settings.ALLOWED_ORIGINS
+    })
     
     # Initialize database
     try:
         await init_db()
         verify_db_connection()
+        logger.info("✅ Database initialized successfully", extra={
+            "component": "database"
+        })
     except Exception as e:
-        print(f" Database initialization warning: {str(e)}")
+        logger.error(f"⚠️ Database initialization warning: {str(e)}", extra={
+            "component": "database",
+            "error": str(e)
+        })
     
     # TODO: Load ML models
     # TODO: Initialize Redis connection
-    print("Startup complete")
+    logger.info("✅ Startup complete")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources on shutdown"""
-    print("Budget Watchdog API shutting down...")
+    logger.info("🛑 Budget Watchdog API shutting down...", extra={
+        "component": "shutdown"
+    })
     # TODO: Close DB connections
     # TODO: Close Redis connections
-    print("shutdown complete")
+    logger.info("✅ Shutdown complete")
 
 
 # =====================================================

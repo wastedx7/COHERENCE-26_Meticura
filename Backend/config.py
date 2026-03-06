@@ -18,6 +18,18 @@ class Settings(BaseSettings):
     # Redis Configuration
     REDIS_URL: str = "redis://localhost:6379/0"
     
+    # Celery Configuration
+    CELERY_BROKER_URL: str = "redis://localhost:6379/1"
+    CELERY_RESULT_BACKEND: str = "redis://localhost:6379/2"
+    CELERY_TASK_SERIALIZER: str = "json"
+    CELERY_RESULT_SERIALIZER: str = "json"
+    CELERY_TIMEZONE: str = "Asia/Kolkata"
+    CELERY_ENABLE_UTC: bool = True
+    
+    # Pipeline Configuration
+    ML_MODEL_PATH: str = "ml/artifacts/model.pkl"
+    ML_SCALER_PATH: str = "ml/artifacts/scaler.pkl"
+    
     # CORS Configuration
     ALLOWED_ORIGINS: list[str] = [
         "http://localhost:3000",
