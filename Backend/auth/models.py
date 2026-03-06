@@ -58,7 +58,7 @@ class TokenPayload(BaseModel):
     """JWT token payload from Clerk"""
     sub: str = Field(..., description="Subject - Clerk user ID")
     azp: Optional[str] = None
-    iat: int
-    exp: int
+    iat: Optional[int] = None
+    exp: Optional[int] = None
     nbf: Optional[int] = None
     iss: Optional[str] = None

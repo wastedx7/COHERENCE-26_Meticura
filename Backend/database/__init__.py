@@ -2,7 +2,7 @@
 Database initialization and session management
 """
 import os
-from sqlalchemy import create_engine
+from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
 from sqlalchemy.pool import NullPool
 from contextlib import contextmanager
@@ -13,12 +13,21 @@ from database.models import Base
 
 
 # Create engine with connection pooling
+db_url = settings.DATABASE_URL
+connect_args = {}
+
+# Driver-specific connection arguments
+if db_url.startswith("postgresql"):
+    connect_args = {"connect_timeout": 10}
+elif db_url.startswith("sqlite"):
+    connect_args = {"timeout": 10}
+
 engine = create_engine(
-    settings.DATABASE_URL,
+    db_url,
     echo=False,  # Set to True for SQL debugging
     pool_pre_ping=True,  # Test connections before using them
     pool_recycle=3600,  # Recycle connections every hour
-    connect_args={"timeout": 10},  # Connection timeout
+    connect_args=connect_args,
 )
 
 # Create session factory
@@ -68,7 +77,7 @@ def verify_db_connection():
     """
     try:
         with engine.connect() as conn:
-            result = conn.execute("SELECT 1")
+            conn.execute(text("SELECT 1"))
             print("Database connection verified")
             return True
     except Exception as e:

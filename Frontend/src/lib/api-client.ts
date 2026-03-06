@@ -2,7 +2,7 @@ import axios, { AxiosError } from 'axios';
 import type { AxiosInstance, InternalAxiosRequestConfig, AxiosResponse } from 'axios';
 import type { APIError } from '../api/types';
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000';
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 const API_TIMEOUT = parseInt(import.meta.env.VITE_API_TIMEOUT || '30000');
 
 // Create axios instance with default configuration
@@ -14,9 +14,23 @@ const apiClient: AxiosInstance = axios.create({
   },
 });
 
+// Global token setter (will be called by Clerk provider)
+let authToken: string | null = null;
+
+export const setAuthToken = (token: string | null) => {
+  authToken = token;
+};
+
+export const getAuthToken = () => authToken;
+
 // Request interceptor
 apiClient.interceptors.request.use(
   (config: InternalAxiosRequestConfig) => {
+    // Add authentication token if available
+    if (authToken) {
+      config.headers.Authorization = `Bearer ${authToken}`;
+    }
+    
     // Add timestamp to prevent caching issues
     if (config.params) {
       config.params._t = Date.now();

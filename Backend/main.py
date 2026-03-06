@@ -6,7 +6,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import auth_example, lapse, anomalies
+from routers import auth_example, lapse, anomalies, budget
 from database import init_db, verify_db_connection
 
 # Create FastAPI app with metadata
@@ -85,10 +85,10 @@ app.include_router(lapse.router, prefix=settings.API_V1_PREFIX)
 # Anomaly detection routes (prefix /api/anomalies)
 app.include_router(anomalies.router, prefix=settings.API_V1_PREFIX)
 
+# Budget analysis routes (prefix /api/budget)
+app.include_router(budget.router, prefix=settings.API_V1_PREFIX)
+
 # TODO: Add more routers as they are implemented
-# from routers import budget, anomalies, predictions, reallocation
-# app.include_router(budget.router, prefix=f"{settings.API_V1_PREFIX}/budget", tags=["Budget"])
-# app.include_router(anomalies.router, prefix=f"{settings.API_V1_PREFIX}/anomalies", tags=["Anomalies"])
 # app.include_router(predictions.router, prefix=f"{settings.API_V1_PREFIX}/predictions", tags=["Predictions"])
 # app.include_router(reallocation.router, prefix=f"{settings.API_V1_PREFIX}/reallocation", tags=["Reallocation"])
 
@@ -100,29 +100,29 @@ app.include_router(anomalies.router, prefix=settings.API_V1_PREFIX)
 @app.on_event("startup")
 async def startup_event():
     """Initialize resources on startup"""
-    print("🚀 Budget Watchdog API starting...")
-    print(f"📍 Environment: {settings.PROJECT_NAME}")
-    print(f"🔌 CORS Origins: {settings.ALLOWED_ORIGINS}")
+    print(" Budget Watchdog API starting...")
+    print(f" Environment: {settings.PROJECT_NAME}")
+    print(f" CORS Origins: {settings.ALLOWED_ORIGINS}")
     
     # Initialize database
     try:
         await init_db()
         verify_db_connection()
     except Exception as e:
-        print(f"⚠️  Database initialization warning: {str(e)}")
+        print(f" Database initialization warning: {str(e)}")
     
     # TODO: Load ML models
     # TODO: Initialize Redis connection
-    print("✅ Startup complete")
+    print("Startup complete")
 
 
 @app.on_event("shutdown")
 async def shutdown_event():
     """Clean up resources on shutdown"""
-    print("⛔ Budget Watchdog API shutting down...")
+    print("Budget Watchdog API shutting down...")
     # TODO: Close DB connections
     # TODO: Close Redis connections
-    print("✅ Shutdown complete")
+    print("shutdown complete")
 
 
 # =====================================================
@@ -143,9 +143,9 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "--prod":
         reload = False
         workers = 4
-        print("🏭 Starting in production mode (4 workers, no reload)")
+        print("Starting in production mode (4 workers, no reload)")
     else:
-        print("🧪 Starting in development mode (reload enabled)")
+        print(" Starting in development mode (reload enabled)")
     
     uvicorn.run(
         "main:app",

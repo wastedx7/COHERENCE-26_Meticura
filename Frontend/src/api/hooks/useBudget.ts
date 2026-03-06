@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@clerk/clerk-react';
 import {
   getNationalOverview,
   getDistricts,
@@ -22,9 +23,11 @@ export const budgetKeys = {
 
 // Get national overview with 30s auto-refresh
 export const useNationalOverview = () => {
+  const { isLoaded, isSignedIn } = useAuth();
   return useQuery({
     queryKey: budgetKeys.overview(),
     queryFn: getNationalOverview,
+    enabled: isLoaded && isSignedIn,
     refetchInterval: REFETCH_INTERVAL,
     staleTime: 25000, // Consider fresh for 25s
     retry: 3,
@@ -33,9 +36,11 @@ export const useNationalOverview = () => {
 
 // Get all districts
 export const useDistricts = () => {
+  const { isLoaded, isSignedIn } = useAuth();
   return useQuery({
     queryKey: budgetKeys.districts(),
     queryFn: getDistricts,
+    enabled: isLoaded && isSignedIn,
     refetchInterval: REFETCH_INTERVAL,
     staleTime: 25000,
     retry: 3,
@@ -44,10 +49,11 @@ export const useDistricts = () => {
 
 // Get specific district detail
 export const useDistrictDetail = (districtId: string) => {
+  const { isLoaded, isSignedIn } = useAuth();
   return useQuery({
     queryKey: budgetKeys.district(districtId),
     queryFn: () => getDistrictById(districtId),
-    enabled: !!districtId,
+    enabled: isLoaded && isSignedIn && !!districtId,
     refetchInterval: REFETCH_INTERVAL,
     staleTime: 25000,
     retry: 3,
@@ -56,10 +62,11 @@ export const useDistrictDetail = (districtId: string) => {
 
 // Get specific department detail
 export const useDepartmentDetail = (deptId: string) => {
+  const { isLoaded, isSignedIn } = useAuth();
   return useQuery({
     queryKey: budgetKeys.department(deptId),
     queryFn: () => getDepartmentById(deptId),
-    enabled: !!deptId,
+    enabled: isLoaded && isSignedIn && !!deptId,
     refetchInterval: REFETCH_INTERVAL,
     staleTime: 25000,
     retry: 3,

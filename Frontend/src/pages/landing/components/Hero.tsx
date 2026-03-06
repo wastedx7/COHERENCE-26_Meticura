@@ -1,11 +1,27 @@
 import React from 'react';
 import { motion } from 'framer-motion';
+import { useNavigate } from 'react-router-dom';
+import { useAuth } from '@clerk/clerk-react';
 import { CTAButton } from '../../../components/common/CTAButton';
 import { StatsCard } from '../../../components/common/StatsCard';
 import { Landmark, CheckSquare, Search } from 'lucide-react';
 import heroSvg from '../../../assets/undraw_printing-invoices_g6c9.svg';
 
 export const Hero = () => {
+    const navigate = useNavigate();
+    const { isSignedIn } = useAuth();
+
+    const handleDashboardClick = () => {
+        navigate(isSignedIn ? '/dashboard/overview' : '/sign-in');
+    };
+
+    const handleTechStackClick = () => {
+        const element = document.getElementById('architecture');
+        if (element) {
+            element.scrollIntoView({ behavior: 'smooth' });
+        }
+    };
+
     return (
         <section id="hero" className="relative pt-32 pb-20 lg:pt-48 lg:pb-32 overflow-hidden min-h-screen flex items-center">
             {/* Background elements */}
@@ -39,10 +55,10 @@ export const Hero = () => {
                         </p>
 
                         <div className="flex flex-col sm:flex-row gap-4 mt-4">
-                            <CTAButton variant="primary" icon className="py-4 px-8 text-lg">
-                                View Dashboard
+                            <CTAButton variant="primary" icon className="py-4 px-8 text-lg" onClick={handleDashboardClick}>
+                                {isSignedIn ? 'View Dashboard' : 'Get Started'}
                             </CTAButton>
-                            <CTAButton variant="glass" className="py-4 px-8 text-lg hover:border-white/30">
+                            <CTAButton variant="glass" className="py-4 px-8 text-lg hover:border-white/30" onClick={handleTechStackClick}>
                                 Explore Tech Stack
                             </CTAButton>
                         </div>

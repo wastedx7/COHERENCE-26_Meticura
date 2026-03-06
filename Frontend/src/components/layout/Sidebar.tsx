@@ -7,6 +7,7 @@ import {
   ArrowLeftRight,
   Menu,
   X,
+  BarChart3,
 } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import { useUIStore } from '../../store';
@@ -17,6 +18,11 @@ const navigationItems = [
     path: '/dashboard/overview',
     label: 'Overview',
     icon: LayoutDashboard,
+  },
+  {
+    path: '/dashboard/analysis',
+    label: 'Budget Analysis',
+    icon: BarChart3,
   },
   {
     path: '/dashboard/districts',

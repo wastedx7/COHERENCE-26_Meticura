@@ -1,4 +1,5 @@
 import { useQuery } from '@tanstack/react-query';
+import { useAuth } from '@clerk/clerk-react';
 import {
   getPredictions,
   getDepartmentPrediction,
@@ -15,9 +16,11 @@ export const predictionKeys = {
 
 // Get all predictions
 export const usePredictions = () => {
+  const { isLoaded, isSignedIn } = useAuth();
   return useQuery({
     queryKey: predictionKeys.lists(),
-    queryFn: getPredictions,
+    queryFn: () => getPredictions(),
+    enabled: isLoaded && isSignedIn,
     refetchInterval: REFETCH_INTERVAL,
     staleTime: 25000,
     retry: 3,
@@ -26,10 +29,11 @@ export const usePredictions = () => {
 
 // Get department prediction
 export const useDepartmentPrediction = (deptId: string) => {
+  const { isLoaded, isSignedIn } = useAuth();
   return useQuery({
     queryKey: predictionKeys.department(deptId),
     queryFn: () => getDepartmentPrediction(deptId),
-    enabled: !!deptId,
+    enabled: isLoaded && isSignedIn && !!deptId,
     refetchInterval: REFETCH_INTERVAL,
     staleTime: 25000,
     retry: 3,

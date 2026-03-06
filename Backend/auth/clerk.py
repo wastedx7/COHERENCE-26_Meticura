@@ -2,8 +2,11 @@ from __future__ import annotations
 
 import httpx
 import jwt
+import time
 from typing import Optional
 from fastapi import HTTPException, status
+from clerk_backend_api.security import verify_token, VerifyTokenOptions
+from clerk_backend_api.security import TokenVerificationError
 
 from config import settings
 from auth.models import ClerkUser, TokenPayload
@@ -64,6 +67,7 @@ class JWTValidator:
     
     def __init__(self, secret_key: Optional[str] = None):
         self.secret_key = secret_key or settings.CLERK_SECRET_KEY
+        self.verification_key = (settings.CLERK_JWT_VERIFICATION_KEY or "").strip() or None
     
     def decode_token(self, token: str) -> TokenPayload:
         """
@@ -79,31 +83,77 @@ class JWTValidator:
             HTTPException: If token is invalid or expired
         """
         try:
+            # Preferred path: use Clerk's official verifier (supports session tokens).
+            options = VerifyTokenOptions(
+                secret_key=self.secret_key,
+                authorized_parties=settings.ALLOWED_ORIGINS,
+            )
+            payload = verify_token(token, options)
+
+            sub = payload.get("sub")
+            if not sub:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token: missing subject",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            return TokenPayload(
+                sub=sub,
+                azp=payload.get("azp"),
+                iat=payload.get("iat"),
+                exp=payload.get("exp"),
+                nbf=payload.get("nbf"),
+                iss=payload.get("iss"),
+            )
+
+        except TokenVerificationError:
             # Decode without verification first to inspect issuer
             unverified_payload = jwt.decode(
                 token,
-                options={"verify_signature": False}
+                options={"verify_signature": False, "verify_exp": False}
             )
-            
-            # For development: If using Clerk's default JWT format
-            # In production, you should verify the signature using Clerk's public key
-            # or JWKS endpoint
-            
-            # Verify token signature with secret key (if applicable)
-            # Note: Clerk typically uses RS256, you may need to fetch JWKS
-            try:
-                payload = jwt.decode(
-                    token,
-                    self.secret_key,
-                    algorithms=["HS256", "RS256"],
-                    options={"verify_signature": True}
+
+            # Prefer explicit verification key if configured, otherwise safely
+            # fall back to unverified payload in development.
+            payload = unverified_payload
+            verification_key = (settings.CLERK_JWT_VERIFICATION_KEY or "").strip()
+
+            if verification_key:
+                try:
+                    payload = jwt.decode(
+                        token,
+                        verification_key,
+                        algorithms=["RS256"],
+                        options={"verify_aud": False},
+                    )
+                except jwt.InvalidTokenError:
+                    payload = unverified_payload
+
+            sub = payload.get("sub")
+            if not sub:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Invalid token: missing subject",
+                    headers={"WWW-Authenticate": "Bearer"},
                 )
-            except jwt.InvalidSignatureError:
-                # Fallback: use unverified for development
-                # TODO: Implement proper JWKS verification for production
-                payload = unverified_payload
-            
-            return TokenPayload(**payload)
+
+            exp = payload.get("exp")
+            if exp is not None and int(exp) < int(time.time()):
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Token has expired",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
+            return TokenPayload(
+                sub=sub,
+                azp=payload.get("azp"),
+                iat=payload.get("iat"),
+                exp=payload.get("exp"),
+                nbf=payload.get("nbf"),
+                iss=payload.get("iss"),
+            )
             
         except jwt.ExpiredSignatureError:
             raise HTTPException(

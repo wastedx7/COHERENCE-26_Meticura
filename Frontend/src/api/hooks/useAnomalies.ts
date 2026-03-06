@@ -1,4 +1,5 @@
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import { useAuth } from '@clerk/clerk-react';
 import {
   getAnomalies,
   getDepartmentAnomalies,
@@ -19,9 +20,11 @@ export const anomalyKeys = {
 
 // Get anomalies with filters
 export const useAnomalies = (filters?: AnomalyFilters) => {
+  const { isLoaded, isSignedIn } = useAuth();
   return useQuery({
     queryKey: anomalyKeys.list(filters),
     queryFn: () => getAnomalies(filters),
+    enabled: isLoaded && isSignedIn,
     refetchInterval: REFETCH_INTERVAL,
     staleTime: 25000,
     retry: 3,
@@ -30,10 +33,11 @@ export const useAnomalies = (filters?: AnomalyFilters) => {
 
 // Get department anomalies
 export const useDepartmentAnomalies = (deptId: string) => {
+  const { isLoaded, isSignedIn } = useAuth();
   return useQuery({
     queryKey: anomalyKeys.department(deptId),
     queryFn: () => getDepartmentAnomalies(deptId),
-    enabled: !!deptId,
+    enabled: isLoaded && isSignedIn && !!deptId,
     refetchInterval: REFETCH_INTERVAL,
     staleTime: 25000,
     retry: 3,
