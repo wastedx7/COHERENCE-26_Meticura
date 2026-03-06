@@ -4,3 +4,4 @@ planning/**
 **/**.md
 **/__pycache__
 .gitignore
+Backend/requirements.txt

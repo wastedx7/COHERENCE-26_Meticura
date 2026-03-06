@@ -1,0 +1,80 @@
+{
+  "model_type": "IsolationForest",
+  "n_estimators": 300,
+  "contamination": 0.09,
+  "random_state": 42,
+  "training_samples": 500,
+  "features_count": 9,
+  "feature_names": [
+    "spend_velocity",
+    "utilization_pct",
+    "days_since_last_txn",
+    "daily_variance",
+    "end_period_spike_ratio",
+    "transaction_count",
+    "avg_transaction_size",
+    "budget_remaining_ratio",
+    "days_into_fiscal_year"
+  ],
+  "confusion_matrix": {
+    "true_negatives": 356,
+    "false_positives": 0,
+    "false_negatives": 99,
+    "true_positives": 45,
+    "matrix": [
+      [
+        356,
+        0
+      ],
+      [
+        99,
+        45
+      ]
+    ]
+  },
+  "metrics": {
+    "accuracy": 0.802,
+    "precision": 1.0,
+    "recall": 0.3125,
+    "f1_score": 0.47619047619047616
+  },
+  "score_statistics": {
+    "min_score": -0.696245493039941,
+    "max_score": -0.37828722672244475,
+    "mean_score": -0.4492539250157091,
+    "std_score": 0.06868541299901453
+  },
+  "prediction_distribution": {
+    "predicted_anomalies": 45,
+    "predicted_healthy": 455,
+    "true_anomalies": 144,
+    "true_healthy": 356
+  },
+  "classification_report": {
+    "healthy": {
+      "precision": 0.7824175824175824,
+      "recall": 1.0,
+      "f1-score": 0.8779284833538841,
+      "support": 356.0
+    },
+    "anomalous": {
+      "precision": 1.0,
+      "recall": 0.3125,
+      "f1-score": 0.47619047619047616,
+      "support": 144.0
+    },
+    "accuracy": 0.802,
+    "macro avg": {
+      "precision": 0.8912087912087912,
+      "recall": 0.65625,
+      "f1-score": 0.6770594797721801,
+      "support": 500.0
+    },
+    "weighted avg": {
+      "precision": 0.8450813186813186,
+      "recall": 0.802,
+      "f1-score": 0.7622279372908225,
+      "support": 500.0
+    }
+  }
+}
