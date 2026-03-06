@@ -32,7 +32,7 @@ export default function AnomalyPage() {
 
     useEffect(() => {
         fetchAll();
-    }, [fetchAll]);
+    }, []);
 
     return (
         <div className="flex flex-col gap-6 animate-fade-in pb-12">

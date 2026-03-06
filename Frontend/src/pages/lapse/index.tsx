@@ -18,7 +18,7 @@ export default function LapsePage() {
         fetchAll();
         fetchSummary();
         fetchCritical();
-    }, [fetchAll, fetchSummary, fetchCritical]);
+    }, []);
 
     const filteredPredictions = riskFilter === 'all'
         ? predictions

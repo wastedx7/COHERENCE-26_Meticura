@@ -8,7 +8,7 @@ export function CriticalAnomaliesPage() {
 
     useEffect(() => {
         fetchCritical();
-    }, [fetchCritical]);
+    }, []);
 
     return (
         <div className="animate-fade-in pb-12">

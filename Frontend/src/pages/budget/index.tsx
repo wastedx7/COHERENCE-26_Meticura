@@ -40,7 +40,7 @@ export default function BudgetPage() {
     useEffect(() => {
         fetchOverview();
         fetchByStatus('all');
-    }, [fetchOverview, fetchByStatus]);
+    }, []);
 
     const filteredDepts = (departments || []).filter((d: any) =>
         d.name?.toLowerCase().includes(searchTerm.toLowerCase()) ||

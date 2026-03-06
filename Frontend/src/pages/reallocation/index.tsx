@@ -16,7 +16,7 @@ export default function ReallocationPage() {
 
     useEffect(() => {
         fetchSuggestions(statusFilter);
-    }, [fetchSuggestions, statusFilter]);
+    }, [statusFilter]);
 
     return (
         <div className="flex flex-col gap-6 animate-fade-in pb-12">

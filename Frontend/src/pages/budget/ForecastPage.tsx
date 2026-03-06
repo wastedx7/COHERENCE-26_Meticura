@@ -5,7 +5,7 @@ import { TrendingDown, AlertTriangle } from 'lucide-react';
 export function ForecastPage() {
     const { fetchForecast, forecast, isLoading } = useBudget();
 
-    useEffect(() => { fetchForecast(); }, [fetchForecast]);
+    useEffect(() => { fetchForecast(); }, []);
 
     return (
         <div className="animate-fade-in">
