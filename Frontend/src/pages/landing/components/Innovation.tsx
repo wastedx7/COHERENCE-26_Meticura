@@ -1,7 +1,7 @@
 import React from 'react';
-import { SectionHeader } from '../../components/common/SectionHeader';
+import { SectionHeader } from '../../../components/common/SectionHeader';
 import { motion } from 'framer-motion';
-import { GlassCard } from '../../components/common/GlassCard';
+import { GlassCard } from '../../../components/common/GlassCard';
 import { Shield, Settings, LineChart, Handshake, BrainCog } from 'lucide-react';
 
 export const Innovation = () => {

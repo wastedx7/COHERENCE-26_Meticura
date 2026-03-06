@@ -1,7 +1,6 @@
 import React from 'react';
-import { SectionHeader } from '../../components/common/SectionHeader';
+import { SectionHeader } from '../../../components/common/SectionHeader';
 import { motion } from 'framer-motion';
-
 export const DashboardPreview = () => {
     return (
         <section id="dashboard" className="py-24 relative overflow-hidden bg-black">
@@ -89,6 +88,8 @@ export const DashboardPreview = () => {
 
                     {/* Bottom Glow */}
                     <div className="absolute -bottom-[200px] left-1/2 -translate-x-1/2 w-full max-w-2xl h-[400px] bg-primary-yellow/20 blur-[150px] -z-10 rounded-full"></div>
+
+                   
                 </motion.div>
 
             </div>

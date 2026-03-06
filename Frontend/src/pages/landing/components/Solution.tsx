@@ -1,8 +1,9 @@
 import React from 'react';
-import { SectionHeader } from '../../components/common/SectionHeader';
-import { GlassCard } from '../../components/common/GlassCard';
+import { SectionHeader } from '../../../components/common/SectionHeader';
+import { GlassCard } from '../../../components/common/GlassCard';
 import { Activity, ShieldAlert, TrendingDown, ArrowRightLeft } from 'lucide-react';
 import { motion } from 'framer-motion';
+import successfulSvg from '../../../assets/undraw_successful_rtc4.svg';
 
 export const Solution = () => {
     const steps = [
@@ -66,6 +67,16 @@ export const Solution = () => {
                         </motion.div>
                     ))}
                 </div>
+
+                <motion.div
+                    initial={{ opacity: 0, scale: 0.9 }}
+                    whileInView={{ opacity: 1, scale: 1 }}
+                    viewport={{ once: true }}
+                    transition={{ duration: 0.8, delay: 0.4 }}
+                    className="mt-20 flex justify-center"
+                >
+                    <img src={successfulSvg} alt="Successful Flow" className="w-full max-w-lg opacity-90 drop-shadow-[0_20px_50px_rgba(255,216,77,0.2)]" />
+                </motion.div>
             </div>
         </section>
     );
