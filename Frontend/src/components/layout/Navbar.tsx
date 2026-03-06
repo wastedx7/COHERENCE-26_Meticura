@@ -60,8 +60,7 @@ export const Navbar = () => {
                         <Github className="w-5 h-5" />
                     </a>
                     <CTAButton variant="glass" className="py-2.5 px-5 text-sm uppercase tracking-wider flex items-center gap-2">
-                        <LogIn className="w-4 h-4" /> Login
-                    </CTAButton>
+                        <LogIn className="w-4 h-4" />                  </CTAButton>
                     <CTAButton variant="primary" className="py-2.5 px-5 text-sm uppercase tracking-wider">
                         Live Demo
                     </CTAButton>

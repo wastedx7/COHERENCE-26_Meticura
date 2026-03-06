@@ -1,5 +1,5 @@
 import React from 'react';
-import { SectionHeader } from '../../components/common/SectionHeader';
+import { SectionHeader } from '../../../components/common/SectionHeader';
 import { motion } from 'framer-motion';
 import { Database, ShieldCheck } from 'lucide-react';
 

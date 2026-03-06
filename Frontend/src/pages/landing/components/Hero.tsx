@@ -1,9 +1,9 @@
 import React from 'react';
 import { motion } from 'framer-motion';
-import { CTAButton } from '../../components/common/CTAButton';
-import { StatsCard } from '../../components/common/StatsCard';
+import { CTAButton } from '../../../components/common/CTAButton';
+import { StatsCard } from '../../../components/common/StatsCard';
 import { Landmark, CheckSquare, Search } from 'lucide-react';
-import heroSvg from '../../assets/undraw_printing-invoices_g6c9.svg';
+import heroSvg from '../../../assets/undraw_printing-invoices_g6c9.svg';
 
 export const Hero = () => {
     return (

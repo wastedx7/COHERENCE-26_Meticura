@@ -1,8 +1,8 @@
 import React from 'react';
-import { SectionHeader } from '../../components/common/SectionHeader';
+import { SectionHeader } from '../../../components/common/SectionHeader';
 import { motion } from 'framer-motion';
 import { Search, Split, Clock, History } from 'lucide-react';
-import { GlassCard } from '../../components/common/GlassCard';
+import { GlassCard } from '../../../components/common/GlassCard';
 
 export const AIDetection = () => {
     const capabilities = [

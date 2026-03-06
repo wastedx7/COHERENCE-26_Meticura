@@ -1,7 +1,7 @@
 import React from 'react';
-import { SectionHeader } from '../../components/common/SectionHeader';
+import { SectionHeader } from '../../../components/common/SectionHeader';
 import { motion } from 'framer-motion';
-import { FeatureCard } from '../../components/common/FeatureCard';
+import { FeatureCard } from '../../../components/common/FeatureCard';
 import { Building, Users, Search, Target } from 'lucide-react';
 
 export const BusinessModel = () => {
