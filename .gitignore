@@ -4,4 +4,4 @@ planning/**
 **/**.md
 **/__pycache__
 .gitignore
-
+**.txt

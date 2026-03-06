@@ -41,9 +41,11 @@ class AuthenticatedUser(BaseModel):
     full_name: str
     username: Optional[str] = None
     image_url: Optional[str] = None
+    role: str = "viewer"  # Default role
+    department_ids: Optional[list[int]] = None  # Departments user can access (None = all)
     
     @classmethod
-    def from_clerk_user(cls, clerk_user: ClerkUser) -> AuthenticatedUser:
+    def from_clerk_user(cls, clerk_user: ClerkUser, role: str = "viewer", department_ids: Optional[list[int]] = None) -> AuthenticatedUser:
         """Create from Clerk user object"""
         return cls(
             clerk_id=clerk_user.id,
@@ -51,6 +53,8 @@ class AuthenticatedUser(BaseModel):
             full_name=clerk_user.full_name,
             username=clerk_user.username,
             image_url=clerk_user.image_url,
+            role=role,
+            department_ids=department_ids,
         )
 
 

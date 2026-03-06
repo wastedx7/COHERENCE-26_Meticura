@@ -81,4 +81,4 @@ apiClient.interceptors.response.use(
 );
 
 export default apiClient;
-export { API_BASE_URL, API_TIMEOUT };
+export { apiClient, API_BASE_URL, API_TIMEOUT };

@@ -2,11 +2,40 @@
 SQLAlchemy ORM Models for Budget Watchdog
 """
 from datetime import datetime
-from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, Index
+from sqlalchemy import Column, Integer, String, Float, DateTime, Text, Boolean, ForeignKey, Index, Enum
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import relationship
+import enum
 
 Base = declarative_base()
+
+
+class UserRole(enum.Enum):
+    """User role enumeration"""
+    ADMIN = "admin"  # Full system access, manage users and roles
+    MANAGER = "manager"  # Department-level access, view reports, approve reallocations
+    ANALYST = "analyst"  # View data, generate reports, recommend optimizations
+    VIEWER = "viewer"  # Read-only access to dashboards and reports
+
+
+class User(Base):
+    """User account with role-based access control"""
+    __tablename__ = "users"
+    
+    id = Column(Integer, primary_key=True)
+    clerk_id = Column(String(255), unique=True, nullable=False, index=True)  # Clerk user ID
+    email = Column(String(255), nullable=False, index=True)
+    full_name = Column(String(255))
+    role = Column(Enum(UserRole), default=UserRole.VIEWER, nullable=False)
+    is_active = Column(Boolean, default=True)
+    department_ids = Column(Text)  # JSON array of department IDs user can access (null = all)
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (
+        Index('idx_clerk_id', 'clerk_id'),
+        Index('idx_role', 'role'),
+    )
 
 
 class Department(Base):
