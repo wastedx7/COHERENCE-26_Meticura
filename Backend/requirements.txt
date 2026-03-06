@@ -10,3 +10,5 @@ pydantic-settings
 httpx
 pyjwt[crypto]
 clerk-backend-api
+sqlalchemy
+psycopg2-binary

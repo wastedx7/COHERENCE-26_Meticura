@@ -6,7 +6,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import auth_example
+from routers import auth_example, lapse
+from database import init_db, verify_db_connection
 
 # Create FastAPI app with metadata
 app = FastAPI(
@@ -78,6 +79,9 @@ async def health_check():
 # Authentication routes (prefix /api/auth handled in router)
 app.include_router(auth_example.router, prefix=settings.API_V1_PREFIX)
 
+# Lapse prediction routes (prefix /api/lapse)
+app.include_router(lapse.router, prefix=settings.API_V1_PREFIX)
+
 # TODO: Add more routers as they are implemented
 # from routers import budget, anomalies, predictions, reallocation
 # app.include_router(budget.router, prefix=f"{settings.API_V1_PREFIX}/budget", tags=["Budget"])
@@ -96,7 +100,14 @@ async def startup_event():
     print("🚀 Budget Watchdog API starting...")
     print(f"📍 Environment: {settings.PROJECT_NAME}")
     print(f"🔌 CORS Origins: {settings.ALLOWED_ORIGINS}")
-    # TODO: Initialize DB connection pool
+    
+    # Initialize database
+    try:
+        await init_db()
+        verify_db_connection()
+    except Exception as e:
+        print(f"⚠️  Database initialization warning: {str(e)}")
+    
     # TODO: Load ML models
     # TODO: Initialize Redis connection
     print("✅ Startup complete")
