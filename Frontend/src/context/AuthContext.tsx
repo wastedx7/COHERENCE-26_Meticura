@@ -1,15 +1,14 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
 
-type UserRole = 'center_admin' | 'district_admin' | 'dept_admin' | 'citizen';
+type UserRole = 'admin' | 'manager' | 'analyst' | 'viewer';
 
 interface User {
     id: number;
-    clerk_id: string;
     email: string;
     full_name: string;
-    username?: string;
-    image_url?: string;
-    department_ids: number[];
+    phone?: string;
+    role: UserRole;
+    is_active: boolean;
 }
 
 interface AuthContextType {
@@ -17,29 +16,16 @@ interface AuthContextType {
     role: UserRole | null;
     isAuthenticated: boolean;
     isLoading: boolean;
-    login: (token: string) => Promise<void>;
+    login: (email: string, password: string) => Promise<void>;
+    register: (email: string, password: string, fullName: string, phone?: string) => Promise<void>;
     logout: () => void;
+    error: string | null;
 }
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8000/api';
-
-const roleMap: Record<string, UserRole> = {
-    center_admin: 'center_admin',
-    district_admin: 'district_admin',
-    dept_admin: 'dept_admin',
-    citizen: 'citizen',
-    admin: 'center_admin',
-    manager: 'district_admin',
-    analyst: 'dept_admin',
-    viewer: 'citizen'
-};
-
-const normalizeRole = (role: string | null | undefined): UserRole => {
-    if (!role) return 'citizen';
-    return roleMap[role] || 'citizen';
-};
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+const TOKEN_KEY = 'meticura_token';
 
 const getTokenHeaders = (token: string) => ({
     Authorization: `Bearer ${token}`,
@@ -50,108 +36,157 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
     const [role, setRole] = useState<UserRole | null>(null);
     const [isLoading, setIsLoading] = useState(true);
+    const [error, setError] = useState<string | null>(null);
 
+    // Verify token on mount and restore session
     useEffect(() => {
-        const verifyInitial = async () => {
+        const verifyToken = async () => {
             try {
-                const token = localStorage.getItem('meticura_token');
-                if (token) {
-                    const [authRes, userRes] = await Promise.all([
-                        fetch(`${API_BASE}/auth/me`, { headers: getTokenHeaders(token) }),
-                        fetch(`${API_BASE}/users/me`, { headers: getTokenHeaders(token) })
-                    ]);
-
-                    if (authRes.ok || userRes.ok) {
-                        const authData = authRes.ok ? await authRes.json() : null;
-                        const userData = userRes.ok ? await userRes.json() : null;
-
-                        setUser({
-                            id: userData?.id || 1,
-                            clerk_id: userData?.clerk_id || authData?.clerk_id || 'user_local',
-                            email: userData?.email || authData?.email || 'user@meticura.gov',
-                            full_name: userData?.full_name || authData?.full_name || 'Meticura User',
-                            username: userData?.username || authData?.username || 'user',
-                            image_url: authData?.image_url,
-                            department_ids: userData?.department_ids || []
-                        });
-                        setRole(normalizeRole(userData?.role));
-                    } else {
-                        // Fallback for local UI mode when backend auth is not configured.
-                        setUser({
-                            id: 1,
-                            clerk_id: 'user_local',
-                            email: 'admin@meticura.gov',
-                            full_name: 'System Admin',
-                            username: 'sysadmin',
-                            department_ids: []
-                        });
-                        setRole('center_admin');
-                    }
+                const token = localStorage.getItem(TOKEN_KEY);
+                if (!token) {
+                    setIsLoading(false);
+                    return;
                 }
-            } catch (err) {
-                console.error(err);
+
+                const response = await fetch(`${API_BASE}/users/me`, {
+                    headers: getTokenHeaders(token),
+                });
+
+                if (response.ok) {
+                    const userData = await response.json();
+                    setUser({
+                        id: userData.id,
+                        email: userData.email,
+                        full_name: userData.full_name,
+                        phone: userData.phone,
+                        role: userData.role,
+                        is_active: userData.is_active,
+                    });
+                    setRole(userData.role as UserRole);
+                    setError(null);
+                } else {
+                    // Token is invalid or expired
+                    localStorage.removeItem(TOKEN_KEY);
+                    setUser(null);
+                    setRole(null);
+                }
+            } catch (error) {
+                console.warn('Token verification failed:', error);
+                localStorage.removeItem(TOKEN_KEY);
+                setUser(null);
+                setRole(null);
             } finally {
                 setIsLoading(false);
             }
         };
-        verifyInitial();
+
+        verifyToken();
     }, []);
 
-    const login = async (token: string) => {
-        localStorage.setItem('meticura_token', token);
-        setIsLoading(true);
+    const login = async (email: string, password: string): Promise<void> => {
+        setError(null);
         try {
-            const [authRes, userRes] = await Promise.all([
-                fetch(`${API_BASE}/auth/me`, { headers: getTokenHeaders(token) }),
-                fetch(`${API_BASE}/users/me`, { headers: getTokenHeaders(token) })
-            ]);
+            const response = await fetch(`${API_BASE}/auth/login`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password }),
+            });
 
-            if (!authRes.ok && !userRes.ok) {
-                throw new Error('Unable to authenticate user from backend');
+            if (!response.ok) {
+                const errorData = await response.json();
+                const errorMsg = errorData.detail || 'Login failed';
+                setError(errorMsg);
+                throw new Error(errorMsg);
             }
 
-            const authData = authRes.ok ? await authRes.json() : null;
-            const userData = userRes.ok ? await userRes.json() : null;
+            const data = await response.json();
+            const token = data.access_token;
 
-            setUser({
-                id: userData?.id || 1,
-                clerk_id: userData?.clerk_id || authData?.clerk_id || 'user_local',
-                email: userData?.email || authData?.email || 'user@meticura.gov',
-                full_name: userData?.full_name || authData?.full_name || 'Meticura User',
-                username: userData?.username || authData?.username || 'user',
-                image_url: authData?.image_url,
-                department_ids: userData?.department_ids || []
+            // Store token
+            localStorage.setItem(TOKEN_KEY, token);
+
+            // Set user data
+            if (data.user) {
+                const userData = data.user;
+                setUser({
+                    id: userData.id,
+                    email: userData.email,
+                    full_name: userData.full_name,
+                    phone: userData.phone,
+                    role: userData.role,
+                    is_active: userData.is_active,
+                });
+                setRole(userData.role as UserRole);
+            }
+        } catch (error: any) {
+            const errorMsg = error.message || 'Login failed';
+            setError(errorMsg);
+            throw error;
+        }
+    };
+
+    const register = async (
+        email: string,
+        password: string,
+        fullName: string,
+        phone?: string
+    ): Promise<void> => {
+        setError(null);
+        try {
+            const response = await fetch(`${API_BASE}/auth/register`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    email,
+                    password,
+                    full_name: fullName,
+                    phone: phone || null,
+                }),
             });
-            setRole(normalizeRole(userData?.role));
-        } catch (err) {
-            console.error(err);
-            // Keep development experience usable if auth backend is unavailable.
-            setUser({
-                id: 1,
-                clerk_id: 'user_local',
-                email: 'admin@meticura.gov',
-                full_name: 'System Admin',
-                username: 'sysadmin',
-                department_ids: []
-            });
-            setRole('center_admin');
-        } finally {
-            setIsLoading(false);
+
+            if (!response.ok) {
+                const errorData = await response.json();
+                const errorMsg = errorData.detail || 'Registration failed';
+                setError(errorMsg);
+                throw new Error(errorMsg);
+            }
+        } catch (error: any) {
+            const errorMsg = error.message || 'Registration failed';
+            setError(errorMsg);
+            throw error;
         }
     };
 
     const logout = () => {
-        localStorage.removeItem('meticura_token');
+        localStorage.removeItem(TOKEN_KEY);
         setUser(null);
         setRole(null);
-        window.location.href = '/login';
+        setError(null);
+        // Redirect happens in component that calls logout
     };
 
     return (
-        <AuthContext.Provider value={{ user, role, isAuthenticated: !!user, isLoading, login, logout }}>
+        <AuthContext.Provider 
+            value={{
+                user,
+                role,
+                isAuthenticated: !!user,
+                isLoading,
+                login,
+                register,
+                logout,
+                error
+            }}
+        >
             {children}
         </AuthContext.Provider>
     );
 };
 
-export const useAuth = () => useContext(AuthContext);
+export const useAuth = () => {
+    const context = useContext(AuthContext);
+    if (!context) {
+        throw new Error('useAuth must be used within an AuthProvider');
+    }
+    return context;
+};

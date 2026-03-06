@@ -23,9 +23,10 @@ class User(Base):
     __tablename__ = "users"
     
     id = Column(Integer, primary_key=True)
-    clerk_id = Column(String(255), unique=True, nullable=False, index=True)  # Clerk user ID
-    email = Column(String(255), nullable=False, index=True)
-    full_name = Column(String(255))
+    email = Column(String(255), nullable=False, unique=True, index=True)
+    password_hash = Column(String(255), nullable=False)  # bcrypt hashed password
+    full_name = Column(String(255), nullable=False)
+    phone = Column(String(20), nullable=True)
     role = Column(Enum(UserRole), default=UserRole.VIEWER, nullable=False)
     is_active = Column(Boolean, default=True)
     department_ids = Column(Text)  # JSON array of department IDs user can access (null = all)
@@ -33,7 +34,7 @@ class User(Base):
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
     __table_args__ = (
-        Index('idx_clerk_id', 'clerk_id'),
+        Index('idx_email', 'email'),
         Index('idx_role', 'role'),
     )
 

@@ -7,7 +7,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 from config import settings
-from routers import auth_example, lapse, anomalies, budget, users, predictions, internal
+from routers import auth, lapse, anomalies, budget, users, predictions, internal
 from database import init_db, verify_db_connection
 from logging_config import configure_logging
 
@@ -88,7 +88,7 @@ async def health_check():
 # =====================================================
 
 # Authentication routes (prefix /api/auth handled in router)
-app.include_router(auth_example.router, prefix=settings.API_V1_PREFIX)
+app.include_router(auth.router, prefix=settings.API_V1_PREFIX)
 
 # User management and RBAC routes (prefix /api/users)
 app.include_router(users.router, prefix=settings.API_V1_PREFIX)

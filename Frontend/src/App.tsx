@@ -7,7 +7,8 @@ import { AuthProvider, useAuth } from './context/AuthContext';
 import AppShell from './components/layout/AppShell';
 
 // Pages
-import AuthPage from './pages/auth';
+import LoginPage from './pages/auth/LoginPage';
+import SignUpPage from './pages/auth/SignUpPage';
 import DashboardPage from './pages/dashboard';
 import BudgetPage from './pages/budget';
 import { DeptBudgetPage } from './pages/budget/DeptBudgetPage';
@@ -35,13 +36,24 @@ import { ReallocationProvider } from './context/ReallocationContext';
 import { DashboardProvider } from './context/DashboardContext';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
-  const { isAuthenticated, role, isLoading } = useAuth();
+  const { role, isLoading, isAuthenticated } = useAuth();
   const location = useLocation();
 
-  if (isLoading) return <div className="h-screen w-screen flex items-center justify-center bg-slate-50"><div className="animate-pulse flex space-x-4"><div className="rounded-full bg-slate-200 h-10 w-10"></div></div></div>;
+  if (isLoading) {
+    return (
+      <div className="h-screen w-screen flex items-center justify-center bg-slate-50">
+        <div className="animate-pulse flex space-x-4">
+          <div className="rounded-full bg-slate-200 h-10 w-10"></div>
+        </div>
+      </div>
+    );
+  }
 
-  if (!isAuthenticated) return <Navigate to="/login" state={{ from: location }} replace />;
+  if (!isAuthenticated) {
+    return <Navigate to="/login" state={{ from: location }} replace />;
+  }
 
+  // Check role-based access on routes with allowedRoles
   if (allowedRoles && role && !allowedRoles.includes(role)) {
     return <Navigate to="/dashboard" replace />;
   }
@@ -71,7 +83,8 @@ export default function App() {
         <Route path="/" element={<LandingPage />} />
 
         {/* Auth */}
-        <Route path="/login" element={<AuthPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route path="/sign-up" element={<SignUpPage />} />
 
         {/* Dashboard / Protected Routes */}
         <Route element={

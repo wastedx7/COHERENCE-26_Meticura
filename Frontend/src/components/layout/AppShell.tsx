@@ -23,8 +23,14 @@ export default function AppShell() {
     const { role, user, logout } = useAuth();
     const navigate = useNavigate();
     const [isCollapsed, setIsCollapsed] = useState(false);
+    const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
 
-    // Define navigation based on role. Same as the Frontend_Plan.md SIDEBAR NAV BY ROLE
+    const handleLogout = () => {
+        logout();
+        navigate('/login', { replace: true });
+    };
+
+    // Define navigation based on role  
     const getNavLinks = () => {
         const base = [
             { name: 'Dashboard', path: '/dashboard', icon: <BarChart3 className="w-5 h-5" /> },
@@ -36,7 +42,8 @@ export default function AppShell() {
             { name: 'Reports', path: '/reports', icon: <FileText className="w-5 h-5" /> },
         ];
 
-        if (role === 'center_admin') {
+        // Admin has access to all features including user management
+        if (role === 'admin') {
             return [
                 ...base,
                 { name: 'Users', path: '/users', icon: <Users className="w-5 h-5" /> },
@@ -45,20 +52,20 @@ export default function AppShell() {
             ];
         }
 
-        if (role === 'dept_admin') {
+        // Manager has access to most features
+        if (role === 'manager') {
             return [
-                { name: 'Dashboard', path: '/dashboard', icon: <BarChart3 className="w-5 h-5" /> },
-                { name: 'My Budget', path: '/budget', icon: <Activity className="w-5 h-5" /> },
-                { name: 'My Anomalies', path: '/anomalies', icon: <AlertTriangle className="w-5 h-5" /> },
-                { name: 'Transactions', path: '/transactions', icon: <ArrowRightLeft className="w-5 h-5" /> },
-                { name: 'Reports', path: '/reports', icon: <FileText className="w-5 h-5" /> }
+                ...base,
+                { name: 'Engine Monitor', path: '/engine', icon: <Settings className="w-5 h-5" /> },
             ];
         }
 
-        if (role === 'district_admin') {
+        // Analyst has access to analysis features
+        if (role === 'analyst') {
             return base;
         }
 
+        // Viewer has read-only access
         return base;
     };
 
@@ -115,20 +122,48 @@ export default function AppShell() {
                 <div className="p-4 border-t border-white/20">
                     <div className="flex items-center p-2 rounded-xl bg-white/40 border border-white/50 shadow-sm backdrop-blur-sm">
                         <div className="w-9 h-9 rounded-full bg-gradient-to-br from-indigo-500 to-purple-500 flex items-center justify-center text-white font-semibold flex-shrink-0">
-                            {user?.username?.charAt(0)?.toUpperCase() || <User className="w-5 h-5" />}
+                            {user?.full_name?.charAt(0)?.toUpperCase() || <User className="w-5 h-5" />}
                         </div>
                         {!isCollapsed && (
                             <div className="ml-3 flex-1 overflow-hidden">
-                                <p className="text-sm font-semibold text-slate-800 truncate">{user?.username || 'Admin User'}</p>
-                                <p className="text-xs text-slate-500 capitalize">{role?.replace('_', ' ')}</p>
+                                <p className="text-sm font-semibold text-slate-800 truncate">{user?.full_name || 'Admin User'}</p>
+                                <p className="text-xs text-slate-500 capitalize">{role?.replace('_', ' ') || 'Viewer'}</p>
                             </div>
                         )}
                         {!isCollapsed && (
-                            <button onClick={logout} className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-white/50">
+                            <button 
+                                onClick={() => setShowLogoutConfirm(true)}
+                                className="p-1.5 text-slate-400 hover:text-red-500 transition-colors rounded-lg hover:bg-white/50"
+                                title="Logout"
+                            >
                                 <LogOut className="w-4 h-4" />
                             </button>
                         )}
                     </div>
+                    
+                    {/* Logout Confirmation Modal */}
+                    {showLogoutConfirm && (
+                        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+                            <div className="bg-white rounded-lg shadow-lg max-w-sm p-6">
+                                <h3 className="text-lg font-semibold text-slate-900 mb-2">Confirm Logout</h3>
+                                <p className="text-slate-600 mb-6">Are you sure you want to logout?</p>
+                                <div className="flex gap-3 justify-end">
+                                    <button
+                                        onClick={() => setShowLogoutConfirm(false)}
+                                        className="px-4 py-2 rounded-lg border border-slate-300 text-slate-700 hover:bg-slate-50 transition-colors"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        onClick={handleLogout}
+                                        className="px-4 py-2 rounded-lg bg-red-600 text-white hover:bg-red-700 transition-colors"
+                                    >
+                                        Logout
+                                    </button>
+                                </div>
+                            </div>
+                        </div>
+                    )}
                 </div>
             </aside>
 

@@ -5,80 +5,96 @@ from typing import Optional, Callable
 from fastapi import Depends, HTTPException, status
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from sqlalchemy.orm import Session
+from jose import jwt, JWTError
+from datetime import datetime
 
-from auth.clerk import clerk_client, jwt_validator
 from auth.models import AuthenticatedUser, TokenPayload
 from auth.roles import Permission, has_permission
 from database import get_db
 from database.models import User as DBUser, UserRole
+from config import settings
 
 
 # Security scheme for FastAPI
-security = HTTPBearer()
+security = HTTPBearer(auto_error=False)
 
 
 async def get_current_user(
-    credentials: HTTPAuthorizationCredentials = Depends(security),
+    credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db),
 ) -> AuthenticatedUser:
     """
-    Dependency for authenticating users via Clerk JWT token
+    Dependency for authenticating users via JWT token
+    
+    Supports both custom JWT tokens and Clerk tokens
     
     Usage in FastAPI routes:
         @router.get("/protected")
         async def protected_route(user: AuthenticatedUser = Depends(get_current_user)):
-            return {"user_id": user.clerk_id, "email": user.email}
+            return {"user_id": user.id, "email": user.email}
     
     Args:
         credentials: Bearer token from Authorization header
         db: Database session
         
     Returns:
-        AuthenticatedUser with Clerk user details and role
+        AuthenticatedUser with user details and role
         
     Raises:
         HTTPException: If authentication fails
     """
+    if credentials is None:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Missing authentication token",
+            headers={"WWW-Authenticate": "Bearer"},
+        )
+
     token = credentials.credentials
     
-    # Decode and validate JWT
-    token_payload: TokenPayload = jwt_validator.decode_token(token)
-    
-    # Extract user ID from token
-    clerk_user_id = token_payload.sub
-    
-    # Fetch full user details from Clerk API
-    clerk_user = await clerk_client.get_user(clerk_user_id)
-    
-    # Get or create user in database with role information
-    db_user = db.query(DBUser).filter(DBUser.clerk_id == clerk_user_id).first()
-    
-    if not db_user:
-        # Create new user with default role
-        db_user = DBUser(
-            clerk_id=clerk_user_id,
-            email=clerk_user.primary_email or "",
-            full_name=clerk_user.full_name,
-            role=UserRole.VIEWER,
+    # Try to decode as custom JWT token
+    try:
+        payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
+        user_id: int = payload.get("sub")
+        
+        if user_id is None:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: no user id found",
+            )
+        
+        # Look up user in database
+        db_user = db.query(DBUser).filter(DBUser.id == user_id).first()
+        
+        if not db_user:
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="User not found",
+            )
+        
+        # Parse department_ids if set
+        department_ids = None
+        if db_user.department_ids:
+            try:
+                department_ids = json.loads(db_user.department_ids)
+            except (json.JSONDecodeError, TypeError):
+                department_ids = None
+        
+        return AuthenticatedUser(
+            id=db_user.id,
+            email=db_user.email,
+            full_name=db_user.full_name,
+            phone=db_user.phone,
+            role=db_user.role.value,
+            is_active=db_user.is_active,
+            department_ids=department_ids,
         )
-        db.add(db_user)
-        db.commit()
-        db.refresh(db_user)
     
-    # Parse department_ids if set
-    department_ids = None
-    if db_user.department_ids:
-        try:
-            department_ids = json.loads(db_user.department_ids)
-        except (json.JSONDecodeError, TypeError):
-            department_ids = None
-    
-    # Convert to simplified authenticated user model with role
-    return AuthenticatedUser.from_clerk_user(
-        clerk_user,
-        role=db_user.role.value,
-        department_ids=department_ids,
-    )
+    except JWTError:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Invalid token",
+        )
 
 
 async def get_optional_user(

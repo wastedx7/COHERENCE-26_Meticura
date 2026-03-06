@@ -27,12 +27,13 @@ class UserRoleUpdate(BaseModel):
 class UserResponse(BaseModel):
     """Schema for user response"""
     id: int
-    clerk_id: str
     email: str
     full_name: Optional[str]
+    phone: Optional[str]
     role: str
     is_active: bool
     department_ids: Optional[List[int]]
+    created_at: str
     
     class Config:
         from_attributes = True
@@ -50,7 +51,7 @@ async def get_current_user_info(
     db: Session = Depends(get_db),
 ) -> dict:
     """Get current authenticated user's information"""
-    db_user = db.query(User).filter(User.clerk_id == current_user.clerk_id).first()
+    db_user = db.query(User).filter(User.id == current_user.id).first()
     
     if not db_user:
         raise HTTPException(
@@ -67,12 +68,13 @@ async def get_current_user_info(
     
     return {
         "id": db_user.id,
-        "clerk_id": db_user.clerk_id,
         "email": db_user.email,
         "full_name": db_user.full_name,
+        "phone": db_user.phone,
         "role": db_user.role.value,
         "is_active": db_user.is_active,
         "department_ids": department_ids,
+        "created_at": db_user.created_at.isoformat() if db_user.created_at else None,
     }
 
 

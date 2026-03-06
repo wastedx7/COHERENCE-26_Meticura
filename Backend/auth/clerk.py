@@ -12,6 +12,20 @@ from config import settings
 from auth.models import ClerkUser, TokenPayload
 
 
+def _build_local_user(user_id: str) -> ClerkUser:
+    now = int(time.time())
+    return ClerkUser(
+        id=user_id,
+        email_addresses=[{"id": "dev_email", "email_address": settings.DEV_AUTH_EMAIL}],
+        first_name=settings.DEV_AUTH_FULL_NAME.split(" ")[0] if settings.DEV_AUTH_FULL_NAME else "System",
+        last_name=" ".join(settings.DEV_AUTH_FULL_NAME.split(" ")[1:]) if settings.DEV_AUTH_FULL_NAME and " " in settings.DEV_AUTH_FULL_NAME else "Admin",
+        username=settings.DEV_AUTH_USERNAME,
+        image_url=None,
+        created_at=now,
+        updated_at=now,
+    )
+
+
 class ClerkClient:
     """Client for interacting with Clerk API"""
     
@@ -37,6 +51,15 @@ class ClerkClient:
         Raises:
             HTTPException: If user not found or API error
         """
+        if settings.DEV_AUTH_ENABLED and user_id == settings.DEV_AUTH_USER_ID:
+            return _build_local_user(user_id)
+
+        if not self.secret_key:
+            raise HTTPException(
+                status_code=status.HTTP_503_SERVICE_UNAVAILABLE,
+                detail="Clerk secret key not configured"
+            )
+
         url = f"{self.BASE_URL}/users/{user_id}"
         
         async with httpx.AsyncClient() as client:
@@ -83,6 +106,24 @@ class JWTValidator:
             HTTPException: If token is invalid or expired
         """
         try:
+            if settings.DEV_AUTH_ENABLED and token == settings.DEV_AUTH_TOKEN:
+                now = int(time.time())
+                return TokenPayload(
+                    sub=settings.DEV_AUTH_USER_ID,
+                    azp="local-dev",
+                    iat=now,
+                    exp=now + 86400,
+                    nbf=now,
+                    iss="local-dev-auth",
+                )
+
+            if not self.secret_key and not self.verification_key:
+                raise HTTPException(
+                    status_code=status.HTTP_401_UNAUTHORIZED,
+                    detail="Auth provider is not configured",
+                    headers={"WWW-Authenticate": "Bearer"},
+                )
+
             # Preferred path: use Clerk's official verifier (supports session tokens).
             options = VerifyTokenOptions(
                 secret_key=self.secret_key,
@@ -167,6 +208,8 @@ class JWTValidator:
                 detail=f"Invalid token: {str(e)}",
                 headers={"WWW-Authenticate": "Bearer"},
             )
+        except HTTPException:
+            raise
         except Exception as e:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,

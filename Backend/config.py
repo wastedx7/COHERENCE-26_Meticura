@@ -3,10 +3,24 @@ from typing import Optional
 
 
 class Settings(BaseSettings):
-    # Clerk Configuration
-    CLERK_SECRET_KEY: str
+    # Security
+    SECRET_KEY: str = "your-secret-key-change-in-production-min-32-chars-long"
+    
+    # Super Admin Configuration
+    SUPER_ADMIN_EMAIL: str = "admin@meticura.gov"
+    SUPER_ADMIN_PASSWORD: str = "Admin@123!meticura"
+    SUPER_ADMIN_NAME: str = "System Administrator"
+    
+    # Clerk Configuration (deprecated, kept for backwards compatibility)
+    CLERK_SECRET_KEY: str = ""
     CLERK_PUBLISHABLE_KEY: Optional[str] = None
     CLERK_JWT_VERIFICATION_KEY: Optional[str] = None
+    DEV_AUTH_ENABLED: bool = False  # Disabled - using custom auth now
+    DEV_AUTH_TOKEN: str = "demo-token"
+    DEV_AUTH_USER_ID: str = "dev_local_user"
+    DEV_AUTH_EMAIL: str = "admin@meticura.gov"
+    DEV_AUTH_FULL_NAME: str = "System Admin"
+    DEV_AUTH_USERNAME: str = "sysadmin"
     
     # API Configuration
     API_V1_PREFIX: str = "/api"
@@ -34,6 +48,10 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: list[str] = [
         "http://localhost:3000",
         "http://localhost:5173",
+        "http://localhost:5174",
+        "http://127.0.0.1:5173",
+        "http://127.0.0.1:5174",
+        "http://127.0.0.1:3000",
     ]
     
     class Config:

@@ -7,8 +7,11 @@ fastapi
 uvicorn[standard]
 python-dotenv
 pydantic-settings
+email-validator
 httpx
 pyjwt[crypto]
+python-jose[cryptography]
+passlib[bcrypt]
 clerk-backend-api
 sqlalchemy
 psycopg2-binary
