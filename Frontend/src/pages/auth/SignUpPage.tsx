@@ -1,7 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, Phone, AlertCircle, CheckCircle } from 'lucide-react';
-import { buildApiUrl } from '../../lib/apiConfig';
+import { useAuth } from '../../context/AuthContext';
 
 interface FormData {
   fullName: string;
@@ -22,6 +22,7 @@ interface FormErrors {
 
 export default function SignUpPage() {
   const navigate = useNavigate();
+  const { register } = useAuth();
   const [formData, setFormData] = useState<FormData>({
     fullName: '',
     email: '',
@@ -102,21 +103,7 @@ export default function SignUpPage() {
     setErrors({ submit: undefined });
 
     try {
-      const response = await fetch(buildApiUrl('/auth/register'), {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: formData.email,
-          password: formData.password,
-          full_name: formData.fullName,
-          phone: formData.phone || null,
-        }),
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || 'Registration failed');
-      }
+      await register(formData.email, formData.password, formData.fullName, formData.phone || undefined);
 
       // Show success message
       setSuccess(true);

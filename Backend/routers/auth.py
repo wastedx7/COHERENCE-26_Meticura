@@ -18,7 +18,7 @@ router = APIRouter(
 
 
 @router.post("/register", response_model=dict)
-async def register(request: UserRegisterRequest, db: Session = Depends(get_db)):
+def register(request: UserRegisterRequest, db: Session = Depends(get_db)):
     """
     Register a new user account
     
@@ -65,7 +65,7 @@ async def register(request: UserRegisterRequest, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenResponse)
-async def login(request: UserLoginRequest, db: Session = Depends(get_db)):
+def login(request: UserLoginRequest, db: Session = Depends(get_db)):
     """
     Login user and return JWT access token
     
@@ -121,7 +121,7 @@ async def login(request: UserLoginRequest, db: Session = Depends(get_db)):
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(user: AuthenticatedUser = Depends(require_auth)):
+def get_current_user_info(user: AuthenticatedUser = Depends(require_auth)):
     """
     Get current authenticated user information
     
@@ -142,7 +142,7 @@ async def get_current_user_info(user: AuthenticatedUser = Depends(require_auth))
 
 
 @router.post("/logout")
-async def logout():
+def logout():
     """
     Logout user (client-side should delete the token)
     
@@ -153,7 +153,7 @@ async def logout():
 
 
 @router.post("/reset-password")
-async def reset_password(
+def reset_password(
     request: PasswordResetRequest,
     user: AuthenticatedUser = Depends(require_auth),
     db: Session = Depends(get_db)

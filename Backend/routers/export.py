@@ -21,7 +21,7 @@ export_service = ExportService()
 
 
 @router.get("/anomalies.csv")
-async def export_anomalies_csv(
+def export_anomalies_csv(
     severity: str = Query(None, description="Filter by severity: low, medium, high, critical"),
     department_id: int = Query(None, description="Filter by department ID"),
     db: Session = Depends(get_db),
@@ -91,7 +91,7 @@ async def export_anomalies_csv(
 
 
 @router.get("/anomalies.pdf")
-async def export_anomalies_pdf(
+def export_anomalies_pdf(
     severity: str = Query(None, description="Filter by severity: low, medium, high, critical"),
     department_id: int = Query(None, description="Filter by department ID"),
     db: Session = Depends(get_db),
@@ -170,7 +170,7 @@ async def export_anomalies_pdf(
 
 
 @router.get("/predictions.csv")
-async def export_predictions_csv(
+def export_predictions_csv(
     risk_level: str = Query(None, description="Filter by risk level: low, medium, high, critical"),
     db: Session = Depends(get_db),
     user_info: dict = Depends(require_auth)
@@ -235,7 +235,7 @@ async def export_predictions_csv(
 
 
 @router.get("/predictions.pdf")
-async def export_predictions_pdf(
+def export_predictions_pdf(
     risk_level: str = Query(None, description="Filter by risk level: low, medium, high, critical"),
     db: Session = Depends(get_db),
     user_info: dict = Depends(require_auth)
@@ -308,7 +308,7 @@ async def export_predictions_pdf(
 
 
 @router.get("/budgets.csv")
-async def export_budgets_csv(
+def export_budgets_csv(
     db: Session = Depends(get_db),
     user_info: dict = Depends(require_auth)
 ):

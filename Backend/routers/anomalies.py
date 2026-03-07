@@ -34,7 +34,7 @@ class ResolveAnomalyRequest(BaseModel):
 
 
 @router.get("/health")
-async def anomaly_health():
+def anomaly_health():
     """Health check for anomaly detection service"""
     return {
         "status": "healthy",
@@ -44,7 +44,7 @@ async def anomaly_health():
 
 
 @router.get("/rules")
-async def get_rules(
+def get_rules(
     user: AuthenticatedUser = Depends(require_auth)
 ):
     """
@@ -68,7 +68,7 @@ async def get_rules(
 
 
 @router.get("/department/{dept_id}")
-async def get_department_anomalies(
+def get_department_anomalies(
     dept_id: int,
     user: AuthenticatedUser = Depends(require_auth)
 ):
@@ -97,7 +97,7 @@ async def get_department_anomalies(
 
 
 @router.get("/critical")
-async def get_critical_anomalies(
+def get_critical_anomalies(
     limit: int = Query(20, ge=1, le=100),
     user: AuthenticatedUser = Depends(require_auth)
 ):
@@ -128,7 +128,7 @@ async def get_critical_anomalies(
 
 
 @router.get("/by-verdict/{verdict}")
-async def get_by_verdict(
+def get_by_verdict(
     verdict: str,
     user: AuthenticatedUser = Depends(require_auth),
     limit: int = Query(50, ge=1, le=500)
@@ -167,7 +167,7 @@ async def get_by_verdict(
 
 
 @router.get("/summary")
-async def get_anomaly_summary(
+def get_anomaly_summary(
     user: AuthenticatedUser = Depends(require_auth)
 ):
     """
@@ -190,7 +190,7 @@ async def get_anomaly_summary(
 
 
 @router.get("/rule/{rule_name}")
-async def get_rule_violations(
+def get_rule_violations(
     rule_name: str,
     user: AuthenticatedUser = Depends(require_auth),
     limit: int = Query(50, ge=1, le=500)
@@ -242,7 +242,7 @@ async def get_rule_violations(
 
 
 @router.get("/")
-async def list_all_anomalies(
+def list_all_anomalies(
     user: AuthenticatedUser = Depends(require_auth),
     limit: int = Query(100, ge=1, le=1000)
 ):
@@ -274,7 +274,7 @@ async def list_all_anomalies(
 
 
 @router.post("/rescan/{dept_id}")
-async def rescan_department(
+def rescan_department(
     dept_id: int,
     user: AuthenticatedUser = Depends(require_auth)
 ):
@@ -303,7 +303,7 @@ async def rescan_department(
 # =====================================================
 
 @router.get("/advanced/by-severity")
-async def filter_by_severity(
+def filter_by_severity(
     min_severity: str = Query("low", description="Minimum severity: low, medium, high, critical"),
     max_severity: Optional[str] = Query(None, description="Maximum severity: low, medium, high, critical"),
     limit: int = Query(100, ge=1, le=1000),
@@ -369,7 +369,7 @@ async def filter_by_severity(
 
 
 @router.get("/advanced/summary-stats")
-async def get_advanced_statistics(
+def get_advanced_statistics(
     group_by: str = Query("verdict", description="Group by: verdict, severity, rule"),
     user: AuthenticatedUser = Depends(require_auth)
 ):
@@ -467,7 +467,7 @@ async def get_advanced_statistics(
 
 
 @router.get("/advanced/search")
-async def search_anomalies(
+def search_anomalies(
     query: str = Query(..., description="Search for departments by ID or name"),
     verdict: Optional[str] = Query(None, description="Filter by verdict"),
     min_score: float = Query(0.0, ge=0.0, le=1.0, description="Minimum anomaly score"),
@@ -522,7 +522,7 @@ async def search_anomalies(
 
 
 @router.post("/{anomaly_id}/resolve")
-async def resolve_anomaly(
+def resolve_anomaly(
     anomaly_id: int,
     payload: ResolveAnomalyRequest,
     user: AuthenticatedUser = Depends(require_auth),

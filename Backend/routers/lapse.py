@@ -21,7 +21,7 @@ router = APIRouter(
 
 
 @router.get("/health")
-async def lapse_health():
+def lapse_health():
     """Health check for lapse prediction service"""
     return {
         "status": "healthy",
@@ -31,7 +31,7 @@ async def lapse_health():
 
 
 @router.get("/department/{dept_id}")
-async def get_department_lapse_prediction(
+def get_department_lapse_prediction(
     dept_id: int,
     user: AuthenticatedUser = Depends(require_auth),
     db: Session = Depends(get_db)
@@ -64,7 +64,7 @@ async def get_department_lapse_prediction(
 
 
 @router.get("/summary")
-async def get_lapse_summary(
+def get_lapse_summary(
     user: AuthenticatedUser = Depends(require_auth),
     db: Session = Depends(get_db)
 ):
@@ -87,7 +87,7 @@ async def get_lapse_summary(
 
 
 @router.get("/critical")
-async def get_critical_budgets(
+def get_critical_budgets(
     limit: int = 10,
     user: AuthenticatedUser = Depends(require_auth),
     db: Session = Depends(get_db)
@@ -119,7 +119,7 @@ async def get_critical_budgets(
 
 
 @router.get("/by-risk-level/{risk_level}")
-async def get_by_risk_level(
+def get_by_risk_level(
     risk_level: str,
     user: AuthenticatedUser = Depends(require_auth),
     db: Session = Depends(get_db)
@@ -152,7 +152,7 @@ async def get_by_risk_level(
 
 
 @router.get("/")
-async def list_all_lapse_predictions(
+def list_all_lapse_predictions(
     user: AuthenticatedUser = Depends(require_auth),
     db: Session = Depends(get_db)
 ):

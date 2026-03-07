@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import { buildApiUrl } from '../lib/apiConfig';
+import { api } from '../lib/api';
 
 const normalizeBudgetRow = (row: any) => ({
     id: row.department_id ?? row.id,
@@ -39,30 +39,17 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     const [forecast, setForecast] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    const getHeaders = () => ({ 'Authorization': `Bearer ${localStorage.getItem('meticura_token')}` });
-
     const fetchOverview = async () => {
         try {
-            const url = buildApiUrl('/budget/overview');
-            console.log('[BudgetContext] Fetching overview:', url);
-            const res = await fetch(url, { 
-                headers: getHeaders(),
-                mode: 'cors'
+            const res = await api.get('/budget/overview');
+            const data = res.data;
+            const summary = data?.summary || {};
+            setOverview({
+                total_allocated: summary.total_allocated_budget ?? 0,
+                total_spent: summary.total_spent ?? 0,
+                avg_utilization: summary.average_utilization_percentage ?? 0,
+                status_counts: data?.departments_by_status || { 'on-track': 0, 'at-risk': 0, exceeded: 0 }
             });
-            console.log('[BudgetContext] Overview response:', res.status);
-            if (res.ok) {
-                const data = await res.json();
-                const summary = data?.summary || {};
-                setOverview({
-                    total_allocated: summary.total_allocated_budget ?? 0,
-                    total_spent: summary.total_spent ?? 0,
-                    avg_utilization: summary.average_utilization_percentage ?? 0,
-                    status_counts: data?.departments_by_status || { 'on-track': 0, 'at-risk': 0, exceeded: 0 }
-                });
-            } else {
-                const errorText = await res.text();
-                console.error('[BudgetContext] Overview failed:', res.status, errorText);
-            }
         } catch (e) {
             console.error('[BudgetContext] Overview error:', e);
         }
@@ -73,25 +60,14 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(true);
         try {
             const url = status === 'all'
-                ? buildApiUrl('/budget/?limit=50&offset=0')
-                : buildApiUrl(`/budget/by-status/${status}?limit=50`);
-            console.log('[BudgetContext] Fetching:', url);
-            const res = await fetch(url, { 
-                headers: getHeaders(),
-                mode: 'cors'
-            });
-            console.log('[BudgetContext] Response status:', res.status, res.statusText);
-            if (res.ok) {
-                const data = await res.json();
-                console.log('[BudgetContext] Data received:', data);
-                const rows = status === 'all'
-                    ? (data?.budgets || [])
-                    : (data?.departments || []);
-                setDepartments(rows.map(normalizeBudgetRow));
-            } else {
-                const errorText = await res.text();
-                console.error('[BudgetContext] Request failed:', res.status, errorText);
-            }
+                ? '/budget/?limit=50&offset=0'
+                : `/budget/by-status/${status}?limit=50`;
+            const res = await api.get(url);
+            const data = res.data;
+            const rows = status === 'all'
+                ? (data?.budgets || [])
+                : (data?.departments || []);
+            setDepartments(rows.map(normalizeBudgetRow));
         } catch (e) {
             console.error('[BudgetContext] Fetch error:', e);
         } finally {
@@ -102,11 +78,8 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     const fetchDeptDetail = async (id: number) => {
         setIsLoading(true);
         try {
-            const res = await fetch(buildApiUrl(`/budget/department/${id}`), { headers: getHeaders() });
-            if (res.ok) {
-                const data = await res.json();
-                setSelectedDept(normalizeBudgetRow(data));
-            }
+            const res = await api.get(`/budget/department/${id}`);
+            setSelectedDept(normalizeBudgetRow(res.data));
         } catch (e) {
             console.error(e);
         } finally {
@@ -117,32 +90,29 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     const fetchComparison = async (ids: number[]) => {
         if (!ids.length) return;
         const query = ids.map((id) => `dept_ids=${id}`).join('&');
-        await fetch(buildApiUrl(`/budget/comparison?${query}`), { headers: getHeaders() });
+        await api.get(`/budget/comparison?${query}`);
     };
 
     const fetchForecast = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(buildApiUrl('/budget/forecast?limit=20'), { headers: getHeaders() });
-            if (res.ok) {
-                const data = await res.json();
-                const rows = data?.forecast || [];
-                setForecast(rows.map((row: any) => {
-                    const allocated = row.allocated_budget ?? 0;
-                    const spent = row.spent_amount ?? 0;
-                    const lapse = Math.max(allocated - spent, 0);
-                    return {
-                        id: row.department_id,
-                        name: row.department_name ?? `Department ${row.department_id}`,
-                        allocated: Number((allocated / 1000000).toFixed(2)),
-                        spent: Number((spent / 1000000).toFixed(2)),
-                        pred_spend: Number((spent / 1000000).toFixed(2)),
-                        lapse: Number((lapse / 1000000).toFixed(2)),
-                        risk: (row.lapse_risk?.risk_level || 'low').toUpperCase(),
-                        risk_score: row.lapse_risk?.risk_score ?? 0
-                    };
-                }));
-            }
+            const res = await api.get('/budget/forecast?limit=20');
+            const rows = res.data?.forecast || [];
+            setForecast(rows.map((row: any) => {
+                const allocated = row.allocated_budget ?? 0;
+                const spent = row.spent_amount ?? 0;
+                const lapse = Math.max(allocated - spent, 0);
+                return {
+                    id: row.department_id,
+                    name: row.department_name ?? `Department ${row.department_id}`,
+                    allocated: Number((allocated / 1000000).toFixed(2)),
+                    spent: Number((spent / 1000000).toFixed(2)),
+                    pred_spend: Number((spent / 1000000).toFixed(2)),
+                    lapse: Number((lapse / 1000000).toFixed(2)),
+                    risk: (row.lapse_risk?.risk_level || 'low').toUpperCase(),
+                    risk_score: row.lapse_risk?.risk_score ?? 0
+                };
+            }));
         } catch (e) {
             console.error(e);
         } finally {
@@ -153,11 +123,8 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     const fetchTopUtilization = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(buildApiUrl('/budget/top-utilization?limit=10'), { headers: getHeaders() });
-            if (res.ok) {
-                const data = await res.json();
-                setDepartments((data?.top_utilization || []).map(normalizeBudgetRow));
-            }
+            const res = await api.get('/budget/top-utilization?limit=10');
+            setDepartments((res.data?.top_utilization || []).map(normalizeBudgetRow));
         } catch (e) {
             console.error(e);
         } finally {

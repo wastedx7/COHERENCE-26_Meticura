@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import { buildApiUrl } from '../lib/apiConfig';
+import { api } from '../lib/api';
 
 const normalizeSuggestion = (row: any) => ({
     id: row.id,
@@ -41,22 +41,20 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
     const [selectedSuggestion, setSelectedSuggestion] = useState<any>(null);
     const [isLoading, setIsLoading] = useState(false);
 
-    const getHeaders = () => ({
-        'Authorization': `Bearer ${localStorage.getItem('meticura_token')}`,
-        'Content-Type': 'application/json'
-    });
-
     const fetchSuggestions = async (status: string = 'pending') => {
         setIsLoading(true);
         try {
-            const res = await fetch(buildApiUrl(`/reallocation/suggestions?status=${status}&limit=50`), { headers: getHeaders() });
-            if (res.ok) {
-                const data = await res.json();
+            const [suggestionsRes, summaryRes] = await Promise.allSettled([
+                api.get(`/reallocation/suggestions?status=${status}&limit=50`),
+                api.get('/reallocation/summary'),
+            ]);
+
+            if (suggestionsRes.status === 'fulfilled') {
+                const data = suggestionsRes.value.data;
                 setSuggestions((Array.isArray(data) ? data : []).map(normalizeSuggestion));
             }
-            const sumRes = await fetch(buildApiUrl('/reallocation/summary'), { headers: getHeaders() });
-            if (sumRes.ok) {
-                const data = await sumRes.json();
+            if (summaryRes.status === 'fulfilled') {
+                const data = summaryRes.value.data;
                 setSummary({
                     pending: data.pending_count || 0,
                     approved: data.approved_count || 0,
@@ -72,40 +70,29 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
     const fetchSuggestion = async (id: number) => {
         setIsLoading(true);
         try {
-            const res = await fetch(buildApiUrl(`/reallocation/suggestion/${id}`), { headers: getHeaders() });
-            if (res.ok) setSelectedSuggestion(normalizeSuggestion(await res.json()));
+            const res = await api.get(`/reallocation/suggestion/${id}`);
+            setSelectedSuggestion(normalizeSuggestion(res.data));
         } catch (e) { console.error(e); } finally { setIsLoading(false); }
     };
 
     const approve = async (id: number, notes: string) => {
         try {
-            const res = await fetch(buildApiUrl(`/reallocation/suggestion/${id}/approve`), {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({ notes })
-            });
-            if (res.ok) await fetchSuggestions();
+            await api.post(`/reallocation/suggestion/${id}/approve`, { notes });
+            await fetchSuggestions();
         } catch (e) { console.error(e); }
     };
 
     const reject = async (id: number, reason: string) => {
         try {
-            const res = await fetch(buildApiUrl(`/reallocation/suggestion/${id}/reject`), {
-                method: 'POST',
-                headers: getHeaders(),
-                body: JSON.stringify({ reason })
-            });
-            if (res.ok) await fetchSuggestions();
+            await api.post(`/reallocation/suggestion/${id}/reject`, { reason });
+            await fetchSuggestions();
         } catch (e) { console.error(e); }
     };
 
     const execute = async (id: number) => {
         try {
-            const res = await fetch(buildApiUrl(`/reallocation/suggestion/${id}/execute`), {
-                method: 'POST',
-                headers: getHeaders()
-            });
-            if (res.ok) await fetchSuggestions('executed');
+            await api.post(`/reallocation/suggestion/${id}/execute`);
+            await fetchSuggestions('executed');
         } catch (e) { console.error(e); }
     };
 

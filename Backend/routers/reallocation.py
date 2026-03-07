@@ -79,7 +79,7 @@ class ReallocaitonSummary(BaseModel):
 # =====================================================
 
 @router.get("/suggestions", response_model=List[ReallocaitonSuggestionResponse])
-async def get_reallocation_suggestions(
+def get_reallocation_suggestions(
     status: Optional[str] = Query(None, description="Filter by status: pending, approved, rejected, executed"),
     priority: Optional[str] = Query(None, description="Filter by priority: low, medium, high, critical"),
     department_id: Optional[int] = Query(None, description="Filter by department (donor or recipient)"),
@@ -138,7 +138,7 @@ async def get_reallocation_suggestions(
 
 
 @router.get("/suggestion/{suggestion_id}", response_model=ReallocaitonSuggestionResponse)
-async def get_reallocation_suggestion(
+def get_reallocation_suggestion(
     suggestion_id: int,
     db: Session = Depends(get_db),
     user_info: dict = Depends(require_auth)
@@ -165,7 +165,7 @@ async def get_reallocation_suggestion(
 
 
 @router.post("/suggestion/{suggestion_id}/approve", response_model=ReallocaitonSuggestionResponse)
-async def approve_reallocation_suggestion(
+def approve_reallocation_suggestion(
     suggestion_id: int,
     request: ReallocaitonApprovalRequest,
     db: Session = Depends(get_db),
@@ -232,7 +232,7 @@ async def approve_reallocation_suggestion(
 
 
 @router.post("/suggestion/{suggestion_id}/reject", response_model=ReallocaitonSuggestionResponse)
-async def reject_reallocation_suggestion(
+def reject_reallocation_suggestion(
     suggestion_id: int,
     request: ReallocaitonRejectionRequest,
     db: Session = Depends(get_db),
@@ -292,7 +292,7 @@ async def reject_reallocation_suggestion(
 
 
 @router.post("/suggestion/{suggestion_id}/execute", response_model=ReallocaitonSuggestionResponse)
-async def execute_reallocation(
+def execute_reallocation(
     suggestion_id: int,
     db: Session = Depends(get_db),
     user_info: dict = Depends(require_auth)
@@ -402,7 +402,7 @@ async def execute_reallocation(
 
 
 @router.get("/summary", response_model=ReallocaitonSummary)
-async def get_reallocation_summary(
+def get_reallocation_summary(
     db: Session = Depends(get_db),
     user_info: dict = Depends(require_auth)
 ):

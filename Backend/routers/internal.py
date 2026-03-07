@@ -20,7 +20,7 @@ def _require_admin(user: AuthenticatedUser) -> None:
 
 
 @router.post("/run-pipeline")
-async def run_pipeline_now(
+def run_pipeline_now(
     user: AuthenticatedUser = Depends(require_auth),
     db: Session = Depends(get_db),
 ):
@@ -30,7 +30,7 @@ async def run_pipeline_now(
 
 
 @router.post("/retrain-model")
-async def retrain_models(
+def retrain_models(
     user: AuthenticatedUser = Depends(require_auth),
 ):
     _require_admin(user)
@@ -69,7 +69,7 @@ async def retrain_models(
 
 
 @router.post("/seed-data")
-async def seed_data(user: AuthenticatedUser = Depends(require_auth)):
+def seed_data(user: AuthenticatedUser = Depends(require_auth)):
     _require_admin(user)
     ok = seed_database()
     if not ok:

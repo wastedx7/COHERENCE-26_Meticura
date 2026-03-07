@@ -19,12 +19,12 @@ def _is_center_admin(user: AuthenticatedUser) -> bool:
 
 
 @router.get("/metrics")
-async def get_metrics(user: AuthenticatedUser = Depends(require_auth)):
+def get_metrics(user: AuthenticatedUser = Depends(require_auth)):
     return predictions_service.get_metrics()
 
 
 @router.get("/metrics/{model_name}")
-async def get_metric(model_name: str, user: AuthenticatedUser = Depends(require_auth)):
+def get_metric(model_name: str, user: AuthenticatedUser = Depends(require_auth)):
     try:
         return predictions_service.get_metric(model_name)
     except KeyError as exc:
@@ -32,17 +32,17 @@ async def get_metric(model_name: str, user: AuthenticatedUser = Depends(require_
 
 
 @router.get("/history")
-async def get_history(user: AuthenticatedUser = Depends(require_auth)):
+def get_history(user: AuthenticatedUser = Depends(require_auth)):
     return predictions_service.get_history()
 
 
 @router.get("/active-model")
-async def get_active_model(user: AuthenticatedUser = Depends(require_auth)):
+def get_active_model(user: AuthenticatedUser = Depends(require_auth)):
     return predictions_service.get_active_model()
 
 
 @router.put("/active-model")
-async def set_active_model(
+def set_active_model(
     payload: ActiveModelUpdateRequest,
     user: AuthenticatedUser = Depends(require_auth),
 ):

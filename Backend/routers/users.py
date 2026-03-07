@@ -46,7 +46,7 @@ class UserListResponse(BaseModel):
 
 
 @router.get("/me", response_model=UserResponse)
-async def get_current_user_info(
+def get_current_user_info(
     current_user: AuthenticatedUser = Depends(get_current_user),
     db: Session = Depends(get_db),
 ) -> dict:
@@ -79,7 +79,7 @@ async def get_current_user_info(
 
 
 @router.get("", response_model=UserListResponse)
-async def list_users(
+def list_users(
     skip: int = 0,
     limit: int = 50,
     current_user: AuthenticatedUser = Depends(require_role("admin")),
@@ -123,7 +123,7 @@ async def list_users(
 
 
 @router.put("/{user_id}/role", response_model=UserResponse)
-async def update_user_role(
+def update_user_role(
     user_id: int,
     role_update: UserRoleUpdate,
     current_user: AuthenticatedUser = Depends(require_permission(Permission.MANAGE_ROLES)),
@@ -193,7 +193,7 @@ async def update_user_role(
 
 
 @router.put("/{user_id}/status", response_model=UserResponse)
-async def update_user_status(
+def update_user_status(
     user_id: int,
     is_active: bool,
     current_user: AuthenticatedUser = Depends(require_permission(Permission.MANAGE_USERS)),
@@ -242,7 +242,7 @@ async def update_user_status(
 
 
 @router.get("/roles/available")
-async def get_available_roles(
+def get_available_roles(
     current_user: AuthenticatedUser = Depends(require_permission(Permission.MANAGE_ROLES)),
 ) -> dict:
     """

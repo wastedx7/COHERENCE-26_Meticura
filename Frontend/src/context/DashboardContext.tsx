@@ -1,7 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
-import { buildApiUrl } from '../lib/apiConfig';
+import { api } from '../lib/api';
 
 interface DashboardContextType {
     budgetOverview: any;
@@ -23,27 +23,14 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     const fetchDashboardData = useCallback(async () => {
         setIsLoading(true);
         try {
-            const headers = { 'Authorization': `Bearer ${localStorage.getItem('meticura_token')}` };
-            const fetchOptions = { 
-                headers,
-                mode: 'cors' as RequestMode
-            };
-
-            console.log('[DashboardContext] Fetching dashboard data');
             const [budgetResult, anomaliesResult, lapseResult] = await Promise.allSettled([
-                fetch(buildApiUrl('/budget/overview'), fetchOptions),
-                fetch(buildApiUrl('/anomalies/critical?limit=5'), fetchOptions),
-                fetch(buildApiUrl('/lapse/summary'), fetchOptions)
+                api.get('/budget/overview'),
+                api.get('/anomalies/critical?limit=5'),
+                api.get('/lapse/summary'),
             ]);
 
-            const budgetRes = budgetResult.status === 'fulfilled' ? budgetResult.value : null;
-            const anomaliesRes = anomaliesResult.status === 'fulfilled' ? anomaliesResult.value : null;
-            const lapseRes = lapseResult.status === 'fulfilled' ? lapseResult.value : null;
-
-            console.log('[DashboardContext] Responses:', budgetRes?.status, anomaliesRes?.status, lapseRes?.status);
-
-            if (budgetRes?.ok) {
-                const budget = await budgetRes.json();
+            if (budgetResult.status === 'fulfilled') {
+                const budget = budgetResult.value.data;
                 const summary = budget?.summary || {};
                 setBudgetOverview({
                     total_allocated: summary.total_allocated_budget ?? 0,
@@ -52,13 +39,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                     status_counts: budget?.departments_by_status || {}
                 });
             }
-            if (anomaliesRes?.ok) {
-                const data = await anomaliesRes.json();
-                setCriticalAnomalies(data?.data || []);
+            if (anomaliesResult.status === 'fulfilled') {
+                setCriticalAnomalies(anomaliesResult.value.data?.data || []);
             }
-            if (lapseRes?.ok) {
-                const data = await lapseRes.json();
-                setLapseSummary(data?.summary || {});
+            if (lapseResult.status === 'fulfilled') {
+                setLapseSummary(lapseResult.value.data?.summary || {});
             }
         } catch (err) {
             console.error("Dashboard fetch error", err);

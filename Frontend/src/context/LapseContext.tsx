@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import { buildApiUrl } from '../lib/apiConfig';
+import { api } from '../lib/api';
 
 const normalizeLapseRow = (row: any) => {
     const deptId = row.dept_id ?? row.department_id;
@@ -38,80 +38,57 @@ export const LapseProvider = ({ children }: { children: ReactNode }) => {
     const [critical, setCritical] = useState<any[]>([]);
     const [isLoading, setIsLoading] = useState(false);
 
-    const getHeaders = () => ({ 'Authorization': `Bearer ${localStorage.getItem('meticura_token')}` });
-
     const fetchAll = async () => {
         setIsLoading(true);
         try {
-            const fetchOptions = { 
-                headers: getHeaders(),
-                mode: 'cors' as RequestMode
-            };
-            console.log('[LapseContext] Fetching predictions');
-            const res = await fetch(buildApiUrl('/lapse/'), fetchOptions);
-            console.log('[LapseContext] Response:', res.status);
-            if (res.ok) {
-                const data = await res.json();
-                setPredictions((data?.data || []).map(normalizeLapseRow));
-            } else {
-                console.error('[LapseContext] Failed:', await res.text());
-            }
+            const res = await api.get('/lapse/');
+            setPredictions((res.data?.data || []).map(normalizeLapseRow));
         } catch (e) { console.error('[LapseContext] Error:', e); } finally { setIsLoading(false); }
     };
 
     const fetchSummary = async () => {
         try {
-            const res = await fetch(buildApiUrl('/lapse/summary'), { headers: getHeaders() });
-            if (res.ok) {
-                const data = await res.json();
-                const risk = data?.summary?.by_risk_level || {};
-                setSummary({
-                    low: risk.low || 0,
-                    medium: risk.medium || 0,
-                    high: risk.high || 0,
-                    critical: risk.critical || 0,
-                    depleted: risk.depleted || 0,
-                    total: data?.summary?.total || 0
-                });
-            }
+            const res = await api.get('/lapse/summary');
+            const risk = res.data?.summary?.by_risk_level || {};
+            setSummary({
+                low: risk.low || 0,
+                medium: risk.medium || 0,
+                high: risk.high || 0,
+                critical: risk.critical || 0,
+                depleted: risk.depleted || 0,
+                total: res.data?.summary?.total || 0
+            });
         } catch (e) { console.error(e); }
     };
 
     const fetchCritical = async () => {
         try {
-            const res = await fetch(buildApiUrl('/lapse/critical?limit=10'), { headers: getHeaders() });
-            if (res.ok) {
-                const data = await res.json();
-                setCritical((data?.data || []).map(normalizeLapseRow));
-            }
+            const res = await api.get('/lapse/critical?limit=10');
+            setCritical((res.data?.data || []).map(normalizeLapseRow));
         } catch (e) { console.error(e); }
     };
 
     const fetchDeptPrediction = async (id: number) => {
         try {
-            const res = await fetch(buildApiUrl(`/lapse/department/${id}`), { headers: getHeaders() });
-            if (res.ok) {
-                const data = await res.json();
-                const p = data?.prediction || {};
-                const budget = p.budget ?? 0;
-                const spent = p.total_spent ?? 0;
-                const lapseAmount = Math.max(budget - spent, 0);
-                const lapsePct = budget > 0 ? (lapseAmount / budget) * 100 : 0;
-                return {
-                    department_id: p.dept_id ?? id,
-                    name: `Department ${p.dept_id ?? id}`,
-                    avg_daily_spend: p.days_until_lapse ? Math.round(spent / Math.max(1, 365 - p.days_until_lapse)) : 0,
-                    predicted_total_spend: spent,
-                    allocation: budget,
-                    predicted_lapse_amount: lapseAmount,
-                    predicted_lapse_pct: Number(lapsePct.toFixed(1)),
-                    risk_level: p.risk_level ?? 'low',
-                    days_to_fiscal_end: p.days_until_lapse ?? 0,
-                    risk_score: p.risk_score ?? 0,
-                    r2_score: p.r2_score ?? 0
-                };
-            }
-            return null;
+            const res = await api.get(`/lapse/department/${id}`);
+            const p = res.data?.prediction || {};
+            const budget = p.budget ?? 0;
+            const spent = p.total_spent ?? 0;
+            const lapseAmount = Math.max(budget - spent, 0);
+            const lapsePct = budget > 0 ? (lapseAmount / budget) * 100 : 0;
+            return {
+                department_id: p.dept_id ?? id,
+                name: `Department ${p.dept_id ?? id}`,
+                avg_daily_spend: p.days_until_lapse ? Math.round(spent / Math.max(1, 365 - p.days_until_lapse)) : 0,
+                predicted_total_spend: spent,
+                allocation: budget,
+                predicted_lapse_amount: lapseAmount,
+                predicted_lapse_pct: Number(lapsePct.toFixed(1)),
+                risk_level: p.risk_level ?? 'low',
+                days_to_fiscal_end: p.days_until_lapse ?? 0,
+                risk_score: p.risk_score ?? 0,
+                r2_score: p.r2_score ?? 0
+            };
         } catch (e) {
             console.error(e);
             return null;

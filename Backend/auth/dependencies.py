@@ -19,7 +19,7 @@ from config import settings
 security = HTTPBearer(auto_error=False)
 
 
-async def get_current_user(
+def get_current_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db),
 ) -> AuthenticatedUser:
@@ -104,7 +104,7 @@ async def get_current_user(
         )
 
 
-async def get_optional_user(
+def get_optional_user(
     credentials: Optional[HTTPAuthorizationCredentials] = Depends(security),
     db: Session = Depends(get_db),
 ) -> Optional[AuthenticatedUser]:
@@ -122,7 +122,7 @@ async def get_optional_user(
         return None
     
     try:
-        return await get_current_user(credentials, db)
+        return get_current_user(credentials, db)
     except HTTPException:
         return None
 
@@ -149,7 +149,7 @@ def require_role(*required_roles: str):
     Returns:
         Dependency function for use in route handlers
     """
-    async def role_checker(user: AuthenticatedUser = Depends(get_current_user)) -> AuthenticatedUser:
+    def role_checker(user: AuthenticatedUser = Depends(get_current_user)) -> AuthenticatedUser:
         if user.role not in required_roles:
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,
@@ -175,7 +175,7 @@ def require_permission(permission: Permission):
     Returns:
         Dependency function for use in route handlers
     """
-    async def permission_checker(user: AuthenticatedUser = Depends(get_current_user)) -> AuthenticatedUser:
+    def permission_checker(user: AuthenticatedUser = Depends(get_current_user)) -> AuthenticatedUser:
         if not has_permission(user.role, permission):
             raise HTTPException(
                 status_code=status.HTTP_403_FORBIDDEN,

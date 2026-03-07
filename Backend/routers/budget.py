@@ -61,7 +61,7 @@ class TransactionCreateRequest(BaseModel):
 # Helper Functions
 # ============================================================================
 
-async def get_department_budget_summary(db: Session, dept_id: int) -> Optional[BudgetSummary]:
+def get_department_budget_summary(db: Session, dept_id: int) -> Optional[BudgetSummary]:
     """Get budget summary for a single department"""
     # Get department
     dept = db.query(Department).filter(Department.dept_id == dept_id).first()
@@ -107,7 +107,7 @@ async def get_department_budget_summary(db: Session, dept_id: int) -> Optional[B
 # ============================================================================
 
 @router.get("/health")
-async def budget_health():
+def budget_health():
     """Health check endpoint"""
     return {
         "status": "healthy",
@@ -117,7 +117,7 @@ async def budget_health():
 
 
 @router.get("/overview")
-async def get_budget_overview(
+def get_budget_overview(
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_auth),
 ):
@@ -212,7 +212,7 @@ async def get_budget_overview(
 
 
 @router.get("/department/{dept_id}")
-async def get_department_budget(
+def get_department_budget(
     dept_id: int,
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_auth),
@@ -229,7 +229,7 @@ async def get_department_budget(
     - Transaction breakdown by category
     """
     try:
-        summary = await get_department_budget_summary(db, dept_id)
+        summary = get_department_budget_summary(db, dept_id)
         if not summary:
             raise HTTPException(status_code=404, detail=f"Department {dept_id} not found")
         
@@ -261,7 +261,7 @@ async def get_department_budget(
 
 
 @router.get("/by-status/{status}")
-async def get_departments_by_status(
+def get_departments_by_status(
     status: str = Path(..., description="Status: on-track, at-risk, or exceeded"),
     limit: int = Query(10, ge=1, le=100),
     db: Session = Depends(get_db),
@@ -287,7 +287,7 @@ async def get_departments_by_status(
         result = []
         
         for dept in departments:
-            summary = await get_department_budget_summary(db, dept.dept_id)
+            summary = get_department_budget_summary(db, dept.dept_id)
             if summary and summary.status == status:
                 result.append(summary.to_dict())
         
@@ -306,7 +306,7 @@ async def get_departments_by_status(
 
 
 @router.get("/top-utilization")
-async def get_top_utilization(
+def get_top_utilization(
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_auth),
@@ -321,7 +321,7 @@ async def get_top_utilization(
         summaries = []
         
         for dept in departments:
-            summary = await get_department_budget_summary(db, dept.dept_id)
+            summary = get_department_budget_summary(db, dept.dept_id)
             if summary:
                 summaries.append(summary)
         
@@ -338,7 +338,7 @@ async def get_top_utilization(
 
 
 @router.get("/comparison")
-async def compare_departments(
+def compare_departments(
     dept_ids: List[int] = Query(..., description="Comma-separated list of department IDs"),
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_auth),
@@ -360,7 +360,7 @@ async def compare_departments(
         comparison = []
         
         for dept_id in dept_ids:
-            summary = await get_department_budget_summary(db, dept_id)
+            summary = get_department_budget_summary(db, dept_id)
             if summary:
                 comparison.append(summary.to_dict())
         
@@ -391,7 +391,7 @@ async def compare_departments(
 
 
 @router.get("/forecast")
-async def budget_forecast(
+def budget_forecast(
     limit: int = Query(10, ge=1, le=50),
     db: Session = Depends(get_db),
     user: AuthenticatedUser = Depends(require_auth),
@@ -411,7 +411,7 @@ async def budget_forecast(
         forecast = []
         
         for pred in lapse_preds:
-            summary = await get_department_budget_summary(db, pred.dept_id)
+            summary = get_department_budget_summary(db, pred.dept_id)
             
             if summary:
                 forecast.append({
@@ -434,7 +434,7 @@ async def budget_forecast(
 
 
 @router.get("/")
-async def list_all_budgets(
+def list_all_budgets(
     limit: int = Query(50, ge=1, le=500),
     offset: int = Query(0, ge=0),
     status: Optional[str] = Query(None, description="Filter by status: on-track, at-risk, exceeded"),
@@ -454,7 +454,7 @@ async def list_all_budgets(
         all_budgets = []
         
         for dept in departments:
-            summary = await get_department_budget_summary(db, dept.dept_id)
+            summary = get_department_budget_summary(db, dept.dept_id)
             if summary:
                 if status is None or summary.status == status:
                     all_budgets.append(summary.to_dict())
@@ -478,7 +478,7 @@ async def list_all_budgets(
 
 
 @router.post("/departments/{dept_id}/transactions")
-async def create_department_transaction(
+def create_department_transaction(
     dept_id: int,
     payload: TransactionCreateRequest,
     db: Session = Depends(get_db),

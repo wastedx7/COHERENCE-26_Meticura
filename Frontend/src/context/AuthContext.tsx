@@ -1,5 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { buildApiUrl } from '../lib/apiConfig';
+import { api } from '../lib/api';
 
 type UserRole = 'admin' | 'manager' | 'analyst' | 'viewer';
 
@@ -27,11 +27,6 @@ const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 const TOKEN_KEY = 'meticura_token';
 const USER_KEY = 'meticura_user';
-
-const getTokenHeaders = (token: string) => ({
-    Authorization: `Bearer ${token}`,
-    'Content-Type': 'application/json'
-});
 
 const parseStoredUser = (): User | null => {
     try {
@@ -70,8 +65,6 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Verify token on mount and restore session
     useEffect(() => {
         const verifyToken = async () => {
-            const controller = new AbortController();
-            const timeoutId = window.setTimeout(() => controller.abort(), 5000);
             try {
                 const token = localStorage.getItem(TOKEN_KEY);
                 if (!token) {
@@ -87,38 +80,36 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     setIsLoading(false);
                 }
 
-                const response = await fetch(buildApiUrl('/users/me'), {
-                    headers: getTokenHeaders(token),
-                    mode: 'cors',
-                    signal: controller.signal,
+                const response = await api.get('/users/me', {
+                    headers: { Authorization: `Bearer ${token}` },
+                    timeout: 5000,
                 });
 
-                if (response.ok) {
-                    const userData = await response.json();
-                    const normalizedUser = {
-                        id: userData.id,
-                        email: userData.email,
-                        full_name: userData.full_name,
-                        phone: userData.phone,
-                        role: userData.role,
-                        is_active: userData.is_active,
-                    };
-                    setUser(normalizedUser);
-                    setRole(userData.role as UserRole);
-                    localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
-                    setError(null);
-                } else if (response.status === 401) {
+                const userData = response.data;
+                const normalizedUser = {
+                    id: userData.id,
+                    email: userData.email,
+                    full_name: userData.full_name,
+                    phone: userData.phone,
+                    role: userData.role,
+                    is_active: userData.is_active,
+                };
+                setUser(normalizedUser);
+                setRole(userData.role as UserRole);
+                localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
+                setError(null);
+            } catch (error: any) {
+                if (error.response?.status === 401) {
                     // Token is invalid or expired
                     localStorage.removeItem(TOKEN_KEY);
                     localStorage.removeItem(USER_KEY);
                     setUser(null);
                     setRole(null);
+                } else {
+                    // Network/transient failures should not force logout on refresh.
+                    console.warn('Token verification warning:', error);
                 }
-            } catch (error) {
-                // Network/transient failures should not force logout on refresh.
-                console.warn('Token verification warning:', error);
             } finally {
-                window.clearTimeout(timeoutId);
                 setIsLoading(false);
             }
         };
@@ -129,20 +120,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const login = async (email: string, password: string): Promise<void> => {
         setError(null);
         try {
-            const response = await fetch(buildApiUrl('/auth/login'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ email, password }),
-            });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                const errorMsg = errorData.detail || 'Login failed';
-                setError(errorMsg);
-                throw new Error(errorMsg);
-            }
-
-            const data = await response.json();
+            const response = await api.post('/auth/login', { email, password });
+            const data = response.data;
             const token = data.access_token;
 
             // Store token
@@ -164,9 +143,9 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
             }
         } catch (error: any) {
-            const errorMsg = error.message || 'Login failed';
+            const errorMsg = error.response?.data?.detail || error.message || 'Login failed';
             setError(errorMsg);
-            throw error;
+            throw new Error(errorMsg);
         }
     };
 
@@ -178,27 +157,16 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     ): Promise<void> => {
         setError(null);
         try {
-            const response = await fetch(buildApiUrl('/auth/register'), {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    email,
-                    password,
-                    full_name: fullName,
-                    phone: phone || null,
-                }),
+            await api.post('/auth/register', {
+                email,
+                password,
+                full_name: fullName,
+                phone: phone || null,
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                const errorMsg = errorData.detail || 'Registration failed';
-                setError(errorMsg);
-                throw new Error(errorMsg);
-            }
         } catch (error: any) {
-            const errorMsg = error.message || 'Registration failed';
+            const errorMsg = error.response?.data?.detail || error.message || 'Registration failed';
             setError(errorMsg);
-            throw error;
+            throw new Error(errorMsg);
         }
     };
 
