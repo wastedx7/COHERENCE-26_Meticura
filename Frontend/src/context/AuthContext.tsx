@@ -26,11 +26,40 @@ interface AuthContextType {
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
 const TOKEN_KEY = 'meticura_token';
+const USER_KEY = 'meticura_user';
 
 const getTokenHeaders = (token: string) => ({
     Authorization: `Bearer ${token}`,
     'Content-Type': 'application/json'
 });
+
+const parseStoredUser = (): User | null => {
+    try {
+        const raw = localStorage.getItem(USER_KEY);
+        if (!raw) return null;
+        return JSON.parse(raw) as User;
+    } catch {
+        return null;
+    }
+};
+
+const deriveUserFromToken = (token: string): User | null => {
+    try {
+        const payloadPart = token.split('.')[1];
+        if (!payloadPart) return null;
+        const json = atob(payloadPart.replace(/-/g, '+').replace(/_/g, '/'));
+        const payload = JSON.parse(json);
+        return {
+            id: Number(payload.sub || 0),
+            email: payload.email || '',
+            full_name: payload.email || 'User',
+            role: (payload.role || 'viewer') as UserRole,
+            is_active: true,
+        };
+    } catch {
+        return null;
+    }
+};
 
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const [user, setUser] = useState<User | null>(null);
@@ -42,7 +71,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     useEffect(() => {
         const verifyToken = async () => {
             const controller = new AbortController();
-            const timeoutId = window.setTimeout(() => controller.abort(), 8000);
+            const timeoutId = window.setTimeout(() => controller.abort(), 5000);
             try {
                 const token = localStorage.getItem(TOKEN_KEY);
                 if (!token) {
@@ -50,34 +79,44 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     return;
                 }
 
+                // Restore cached user immediately so refresh does not block app rendering.
+                const storedUser = parseStoredUser() || deriveUserFromToken(token);
+                if (storedUser) {
+                    setUser(storedUser);
+                    setRole(storedUser.role);
+                    setIsLoading(false);
+                }
+
                 const response = await fetch(buildApiUrl('/users/me'), {
                     headers: getTokenHeaders(token),
+                    mode: 'cors',
                     signal: controller.signal,
                 });
 
                 if (response.ok) {
                     const userData = await response.json();
-                    setUser({
+                    const normalizedUser = {
                         id: userData.id,
                         email: userData.email,
                         full_name: userData.full_name,
                         phone: userData.phone,
                         role: userData.role,
                         is_active: userData.is_active,
-                    });
+                    };
+                    setUser(normalizedUser);
                     setRole(userData.role as UserRole);
+                    localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
                     setError(null);
-                } else {
+                } else if (response.status === 401) {
                     // Token is invalid or expired
                     localStorage.removeItem(TOKEN_KEY);
+                    localStorage.removeItem(USER_KEY);
                     setUser(null);
                     setRole(null);
                 }
             } catch (error) {
-                console.warn('Token verification failed:', error);
-                localStorage.removeItem(TOKEN_KEY);
-                setUser(null);
-                setRole(null);
+                // Network/transient failures should not force logout on refresh.
+                console.warn('Token verification warning:', error);
             } finally {
                 window.clearTimeout(timeoutId);
                 setIsLoading(false);
@@ -112,15 +151,17 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
             // Set user data
             if (data.user) {
                 const userData = data.user;
-                setUser({
+                const normalizedUser = {
                     id: userData.id,
                     email: userData.email,
                     full_name: userData.full_name,
                     phone: userData.phone,
                     role: userData.role,
                     is_active: userData.is_active,
-                });
+                };
+                setUser(normalizedUser);
                 setRole(userData.role as UserRole);
+                localStorage.setItem(USER_KEY, JSON.stringify(normalizedUser));
             }
         } catch (error: any) {
             const errorMsg = error.message || 'Login failed';
@@ -163,6 +204,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
     const logout = () => {
         localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
         setUser(null);
         setRole(null);
         setError(null);

@@ -37,35 +37,43 @@ export default function AppShell() {
             { name: 'Budget', path: '/budget', icon: <Activity className="w-5 h-5" /> },
             { name: 'Anomalies', path: '/anomalies', icon: <AlertTriangle className="w-5 h-5" /> },
             { name: 'Lapse', path: '/lapse', icon: <TrendingDown className="w-5 h-5" /> },
-            { name: 'Reallocation', path: '/reallocation', icon: <ArrowRightLeft className="w-5 h-5" /> },
             { name: 'Tree View', path: '/tree', icon: <Network className="w-5 h-5" /> },
-            { name: 'Reports', path: '/reports', icon: <FileText className="w-5 h-5" /> },
         ];
 
         // Admin has access to all features including user management
         if (role === 'admin') {
             return [
                 ...base,
+                { name: 'Reallocation', path: '/reallocation', icon: <ArrowRightLeft className="w-5 h-5" /> },
+                { name: 'Reports', path: '/reports', icon: <FileText className="w-5 h-5" /> },
                 { name: 'Users', path: '/users', icon: <Users className="w-5 h-5" /> },
                 { name: 'Engine Monitor', path: '/engine', icon: <Settings className="w-5 h-5" /> },
+                { name: 'My Models', path: '/my-models', icon: <Database className="w-5 h-5" /> },
+                { name: 'Transactions', path: '/transactions', icon: <FileText className="w-5 h-5" /> },
+            ];
+        }
+
+        // Manager access (no /engine route access)
+        if (role === 'manager') {
+            return [
+                ...base,
+                { name: 'Reallocation', path: '/reallocation', icon: <ArrowRightLeft className="w-5 h-5" /> },
+                { name: 'Reports', path: '/reports', icon: <FileText className="w-5 h-5" /> },
+                { name: 'My Models', path: '/my-models', icon: <Database className="w-5 h-5" /> },
+                { name: 'Transactions', path: '/transactions', icon: <FileText className="w-5 h-5" /> },
+            ];
+        }
+
+        // Analyst access
+        if (role === 'analyst') {
+            return [
+                ...base,
+                { name: 'Reports', path: '/reports', icon: <FileText className="w-5 h-5" /> },
                 { name: 'My Models', path: '/my-models', icon: <Database className="w-5 h-5" /> },
             ];
         }
 
-        // Manager has access to most features
-        if (role === 'manager') {
-            return [
-                ...base,
-                { name: 'Engine Monitor', path: '/engine', icon: <Settings className="w-5 h-5" /> },
-            ];
-        }
-
-        // Analyst has access to analysis features
-        if (role === 'analyst') {
-            return base;
-        }
-
-        // Viewer has read-only access
+        // Viewer read-only access
         return base;
     };
 

@@ -43,12 +43,20 @@ export const LapseProvider = ({ children }: { children: ReactNode }) => {
     const fetchAll = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(buildApiUrl('/lapse/'), { headers: getHeaders() });
+            const fetchOptions = { 
+                headers: getHeaders(),
+                mode: 'cors' as RequestMode
+            };
+            console.log('[LapseContext] Fetching predictions');
+            const res = await fetch(buildApiUrl('/lapse/'), fetchOptions);
+            console.log('[LapseContext] Response:', res.status);
             if (res.ok) {
                 const data = await res.json();
                 setPredictions((data?.data || []).map(normalizeLapseRow));
+            } else {
+                console.error('[LapseContext] Failed:', await res.text());
             }
-        } catch (e) { console.error(e); } finally { setIsLoading(false); }
+        } catch (e) { console.error('[LapseContext] Error:', e); } finally { setIsLoading(false); }
     };
 
     const fetchSummary = async () => {

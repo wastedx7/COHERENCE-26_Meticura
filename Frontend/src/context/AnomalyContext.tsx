@@ -62,13 +62,21 @@ export const AnomalyProvider = ({ children }: { children: ReactNode }) => {
     const fetchAll = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(buildApiUrl('/anomalies/?limit=100'), { headers: getHeaders() });
+            const fetchOptions = { 
+                headers: getHeaders(),
+                mode: 'cors' as RequestMode
+            };
+            console.log('[AnomalyContext] Fetching anomalies');
+            const res = await fetch(buildApiUrl('/anomalies/?limit=100'), fetchOptions);
+            console.log('[AnomalyContext] Response:', res.status);
             if (res.ok) {
                 const data = await res.json();
                 const rows = data?.data || [];
                 setAnomalies(rows.map(normalizeDetection));
+            } else {
+                console.error('[AnomalyContext] Failed:', await res.text());
             }
-            const sumRes = await fetch(buildApiUrl('/anomalies/summary'), { headers: getHeaders() });
+            const sumRes = await fetch(buildApiUrl('/anomalies/summary'), fetchOptions);
             if (sumRes.ok) {
                 const data = await sumRes.json();
                 const verdict = data?.summary?.by_verdict || {};

@@ -24,14 +24,25 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(true);
         try {
             const headers = { 'Authorization': `Bearer ${localStorage.getItem('meticura_token')}` };
+            const fetchOptions = { 
+                headers,
+                mode: 'cors' as RequestMode
+            };
 
-            const [budgetRes, anomaliesRes, lapseRes] = await Promise.all([
-                fetch(buildApiUrl('/budget/overview'), { headers }),
-                fetch(buildApiUrl('/anomalies/critical?limit=5'), { headers }),
-                fetch(buildApiUrl('/lapse/summary'), { headers })
+            console.log('[DashboardContext] Fetching dashboard data');
+            const [budgetResult, anomaliesResult, lapseResult] = await Promise.allSettled([
+                fetch(buildApiUrl('/budget/overview'), fetchOptions),
+                fetch(buildApiUrl('/anomalies/critical?limit=5'), fetchOptions),
+                fetch(buildApiUrl('/lapse/summary'), fetchOptions)
             ]);
 
-            if (budgetRes.ok) {
+            const budgetRes = budgetResult.status === 'fulfilled' ? budgetResult.value : null;
+            const anomaliesRes = anomaliesResult.status === 'fulfilled' ? anomaliesResult.value : null;
+            const lapseRes = lapseResult.status === 'fulfilled' ? lapseResult.value : null;
+
+            console.log('[DashboardContext] Responses:', budgetRes?.status, anomaliesRes?.status, lapseRes?.status);
+
+            if (budgetRes?.ok) {
                 const budget = await budgetRes.json();
                 const summary = budget?.summary || {};
                 setBudgetOverview({
@@ -41,11 +52,11 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
                     status_counts: budget?.departments_by_status || {}
                 });
             }
-            if (anomaliesRes.ok) {
+            if (anomaliesRes?.ok) {
                 const data = await anomaliesRes.json();
                 setCriticalAnomalies(data?.data || []);
             }
-            if (lapseRes.ok) {
+            if (lapseRes?.ok) {
                 const data = await lapseRes.json();
                 setLapseSummary(data?.summary || {});
             }

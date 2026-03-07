@@ -43,7 +43,13 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchOverview = async () => {
         try {
-            const res = await fetch(buildApiUrl('/budget/overview'), { headers: getHeaders() });
+            const url = buildApiUrl('/budget/overview');
+            console.log('[BudgetContext] Fetching overview:', url);
+            const res = await fetch(url, { 
+                headers: getHeaders(),
+                mode: 'cors'
+            });
+            console.log('[BudgetContext] Overview response:', res.status);
             if (res.ok) {
                 const data = await res.json();
                 const summary = data?.summary || {};
@@ -53,9 +59,12 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
                     avg_utilization: summary.average_utilization_percentage ?? 0,
                     status_counts: data?.departments_by_status || { 'on-track': 0, 'at-risk': 0, exceeded: 0 }
                 });
+            } else {
+                const errorText = await res.text();
+                console.error('[BudgetContext] Overview failed:', res.status, errorText);
             }
         } catch (e) {
-            console.error(e);
+            console.error('[BudgetContext] Overview error:', e);
         }
     };
 
@@ -66,16 +75,25 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
             const url = status === 'all'
                 ? buildApiUrl('/budget/?limit=50&offset=0')
                 : buildApiUrl(`/budget/by-status/${status}?limit=50`);
-            const res = await fetch(url, { headers: getHeaders() });
+            console.log('[BudgetContext] Fetching:', url);
+            const res = await fetch(url, { 
+                headers: getHeaders(),
+                mode: 'cors'
+            });
+            console.log('[BudgetContext] Response status:', res.status, res.statusText);
             if (res.ok) {
                 const data = await res.json();
+                console.log('[BudgetContext] Data received:', data);
                 const rows = status === 'all'
                     ? (data?.budgets || [])
                     : (data?.departments || []);
                 setDepartments(rows.map(normalizeBudgetRow));
+            } else {
+                const errorText = await res.text();
+                console.error('[BudgetContext] Request failed:', res.status, errorText);
             }
         } catch (e) {
-            console.error(e);
+            console.error('[BudgetContext] Fetch error:', e);
         } finally {
             setIsLoading(false);
         }

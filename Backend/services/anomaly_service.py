@@ -8,6 +8,7 @@ import pandas as pd
 from datetime import datetime
 from typing import List, Dict, Tuple
 import json
+import time
 
 # Add parent directory to path
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -72,6 +73,16 @@ class AnomalyService:
         self._artifacts_dir = Path(__file__).parent.parent / "ml" / "artifacts"
         self._ensemble_file = self._artifacts_dir / "ensemble_scored_features.csv"
         self._ensemble_metrics_file = self._artifacts_dir / "ensemble_metrics.json"
+
+        # In-memory caches to avoid re-reading large CSV files per request.
+        self._transactions_df: pd.DataFrame | None = None
+        self._allocations_df: pd.DataFrame | None = None
+        self._ensemble_df: pd.DataFrame | None = None
+        self._ensemble_metrics: dict | None = None
+
+        # Batch detection cache (short TTL) to protect dashboard and list endpoints.
+        self._batch_cache: Dict[Tuple[str, str], Tuple[float, List[AnomalyResult]]] = {}
+        self._batch_cache_ttl_seconds = 30
     
     
     def detect_anomalies(
@@ -141,8 +152,10 @@ class AnomalyService:
             return {"score": 0.0, "is_anomaly": False, "confidence": 0.0}
 
         try:
-            scored = pd.read_csv(self._ensemble_file)
-            rows = scored[scored["dept_id"] == dept_id]
+            if self._ensemble_df is None:
+                self._ensemble_df = pd.read_csv(self._ensemble_file)
+
+            rows = self._ensemble_df[self._ensemble_df["dept_id"] == dept_id]
             if rows.empty:
                 return {"score": 0.0, "is_anomaly": False, "confidence": 0.0}
 
@@ -152,9 +165,10 @@ class AnomalyService:
 
             threshold = float(row.get("ensemble_threshold", 0.5))
             if self._ensemble_metrics_file.exists():
-                with open(self._ensemble_metrics_file, "r", encoding="utf-8") as f:
-                    metrics = json.load(f)
-                threshold = float(metrics.get("best_threshold", threshold))
+                if self._ensemble_metrics is None:
+                    with open(self._ensemble_metrics_file, "r", encoding="utf-8") as f:
+                        self._ensemble_metrics = json.load(f)
+                threshold = float(self._ensemble_metrics.get("best_threshold", threshold))
 
             # Confidence increases as score moves away from threshold.
             confidence = min(1.0, abs(score - threshold) * 2.0)
@@ -174,17 +188,22 @@ class AnomalyService:
         if not txn_path.exists():
             return pd.DataFrame(), 0.0
         
-        txns = pd.read_csv(txn_path)
-        txns = txns[txns['dept_id'] == dept_id].copy()
-        txns['date'] = pd.to_datetime(txns['date'])
+        if self._transactions_df is None:
+            txns_df = pd.read_csv(txn_path)
+            txns_df['date'] = pd.to_datetime(txns_df['date'])
+            self._transactions_df = txns_df
+
+        txns = self._transactions_df[self._transactions_df['dept_id'] == dept_id].copy()
         
         # Load budget
         alloc_path = ml_dir / "output" / "budget_allocations.csv"
         if not alloc_path.exists():
             return txns, 0.0
         
-        allocs = pd.read_csv(alloc_path)
-        dept_alloc = allocs[allocs['dept_id'] == dept_id].sort_values('fiscal_year')
+        if self._allocations_df is None:
+            self._allocations_df = pd.read_csv(alloc_path)
+
+        dept_alloc = self._allocations_df[self._allocations_df['dept_id'] == dept_id].sort_values('fiscal_year')
         
         budget = dept_alloc['total_amount'].iloc[-1] if len(dept_alloc) > 0 else 0.0
         
@@ -250,14 +269,26 @@ class AnomalyService:
         Returns:
             List of anomaly results
         """
+        dept_key = "all" if dept_ids is None else ",".join(str(i) for i in sorted(dept_ids))
+        severity_key = min_severity or "none"
+        cache_key = (dept_key, severity_key)
+
+        now = time.time()
+        cached = self._batch_cache.get(cache_key)
+        if cached and (now - cached[0]) < self._batch_cache_ttl_seconds:
+            return cached[1]
+
         # Auto-detect all departments
         if dept_ids is None:
             base_dir = Path(__file__).parent.parent
             ml_dir = base_dir / "ml"
             txn_path = ml_dir / "output" / "transactions.csv"
             if txn_path.exists():
-                txns = pd.read_csv(txn_path)
-                dept_ids = sorted(txns['dept_id'].unique().tolist())
+                if self._transactions_df is None:
+                    txns_df = pd.read_csv(txn_path)
+                    txns_df['date'] = pd.to_datetime(txns_df['date'])
+                    self._transactions_df = txns_df
+                dept_ids = sorted(self._transactions_df['dept_id'].unique().tolist())
             else:
                 return []
         
@@ -279,6 +310,7 @@ class AnomalyService:
             elif result.ml_flagged or result.rule_flagged:
                 results.append(result)
         
+        self._batch_cache[cache_key] = (now, results)
         return results
     
     
