@@ -41,6 +41,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     // Verify token on mount and restore session
     useEffect(() => {
         const verifyToken = async () => {
+            const controller = new AbortController();
+            const timeoutId = window.setTimeout(() => controller.abort(), 8000);
             try {
                 const token = localStorage.getItem(TOKEN_KEY);
                 if (!token) {
@@ -50,6 +52,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
 
                 const response = await fetch(buildApiUrl('/users/me'), {
                     headers: getTokenHeaders(token),
+                    signal: controller.signal,
                 });
 
                 if (response.ok) {
@@ -76,6 +79,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                 setUser(null);
                 setRole(null);
             } finally {
+                window.clearTimeout(timeoutId);
                 setIsLoading(false);
             }
         };

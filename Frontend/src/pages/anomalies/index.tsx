@@ -18,17 +18,16 @@ const verdictColors: any = {
     critical: '#b91c1c'
 };
 
-const mockSummaryData = [
-    { name: 'Normal', value: 140, color: '#10b981' },
-    { name: 'Warning', value: 35, color: '#f59e0b' },
-    { name: 'Alert', value: 15, color: '#ef4444' },
-    { name: 'Critical', value: 10, color: '#b91c1c' },
-];
-
 export default function AnomalyPage() {
     const { anomalies, summary, isLoading, fetchAll } = useAnomaly();
     const [searchTerm, setSearchTerm] = useState('');
     const verdictColorValues = Object.values(verdictColors) as string[];
+    const summaryChartData = [
+        { label: 'normal', value: summary?.normal || 0, color: verdictColors.normal },
+        { label: 'warning', value: summary?.warning || 0, color: verdictColors.warning },
+        { label: 'alert', value: summary?.alert || 0, color: verdictColors.alert },
+        { label: 'critical', value: summary?.critical || 0, color: verdictColors.critical },
+    ];
 
     useEffect(() => {
         fetchAll();
@@ -69,8 +68,8 @@ export default function AnomalyPage() {
                     <div className="w-full h-40 mt-4">
                         <ResponsiveContainer width="100%" height="100%">
                             <RechartsPieChart>
-                                <Pie data={mockSummaryData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value">
-                                    {mockSummaryData.map((entry, index) => (
+                                <Pie data={summaryChartData} innerRadius={50} outerRadius={70} paddingAngle={2} dataKey="value">
+                                    {summaryChartData.map((entry, index) => (
                                         <Cell key={`cell-${index}`} fill={entry.color} />
                                     ))}
                                 </Pie>

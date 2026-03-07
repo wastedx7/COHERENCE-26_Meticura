@@ -15,16 +15,6 @@ export function DeptLapsePage() {
         }
     }, [id, fetchDeptPrediction]);
 
-    // Mock data for chart
-    const mockLineData = [
-        { day: 0, actual: 0, alloc: 1000 },
-        { day: 60, actual: 150, alloc: 1000 },
-        { day: 120, actual: 300, alloc: 1000 },
-        { day: 180, actual: 500, alloc: 1000 },
-        { day: 240, actual: 650, alloc: 1000 },
-        { day: 365, pred: 820, alloc: 1000 }
-    ];
-
     const data = prediction || {
         department_id: id || 101,
         name: 'Education infrastructure',
@@ -36,6 +26,14 @@ export function DeptLapsePage() {
         risk_level: 'high',
         days_to_fiscal_end: 84
     };
+
+    const trendData = [
+        { day: 120, alloc: data.allocation, actual: Math.round(data.predicted_total_spend * 0.45), pred: Math.round(data.predicted_total_spend * 0.5) },
+        { day: 180, alloc: data.allocation, actual: Math.round(data.predicted_total_spend * 0.65), pred: Math.round(data.predicted_total_spend * 0.72) },
+        { day: 240, alloc: data.allocation, actual: Math.round(data.predicted_total_spend * 0.82), pred: Math.round(data.predicted_total_spend * 0.9) },
+        { day: 300, alloc: data.allocation, actual: null, pred: Math.round(data.predicted_total_spend * 0.97) },
+        { day: 365, alloc: data.allocation, actual: null, pred: data.predicted_total_spend },
+    ];
 
     return (
         <div className="animate-fade-in pb-12">
@@ -85,7 +83,7 @@ export function DeptLapsePage() {
                     <h3 className="text-lg font-bold text-slate-800 mb-6">Extrapolated Burn Path</h3>
                     <div className="flex-1 w-full min-h-[250px]">
                         <ResponsiveContainer width="100%" height="100%">
-                            <LineChart data={mockLineData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
+                            <LineChart data={trendData} margin={{ top: 20, right: 30, left: 0, bottom: 0 }}>
                                 <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                                 <XAxis dataKey="day" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} dy={10} />
                                 <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} />

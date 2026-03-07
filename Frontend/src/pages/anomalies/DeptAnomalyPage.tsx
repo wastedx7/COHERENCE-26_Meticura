@@ -4,15 +4,6 @@ import { useAnomaly } from '../../context/AnomalyContext';
 import { ChevronLeft, RefreshCw, AlertTriangle, ShieldCheck, FileText } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-const mockFeatureData = [
-    { name: 'velocity', val: -0.8 },
-    { name: 'util_pct', val: 0.1 },
-    { name: 'inactivity', val: -0.2 },
-    { name: 'variance', val: 0.9 },
-    { name: 'spike', val: 0.6 },
-    { name: 'txn_cnt', val: -0.4 },
-];
-
 export function DeptAnomalyPage() {
     const { id } = useParams();
     const { selectedDeptAnomaly, fetchDeptAnomaly, rescanDept, isLoading } = useAnomaly();
@@ -31,6 +22,13 @@ export function DeptAnomalyPage() {
         rule_message: '40%+ of annual budget spent in final 30 days',
         is_resolved: false
     };
+
+    const featureData = [
+        { name: 'Combined Score', val: Number(anomaly.combined_score ?? 0) },
+        { name: 'Severity Weight', val: anomaly.severity === 'high' ? -0.8 : -0.3 },
+        { name: 'Rule Match', val: anomaly.rule_id ? -0.6 : 0.2 },
+        { name: 'Resolution State', val: anomaly.is_resolved ? 0.4 : -0.4 },
+    ];
 
     return (
         <div className="animate-fade-in pb-12">
@@ -104,13 +102,13 @@ export function DeptAnomalyPage() {
                 <h3 className="text-lg font-bold text-slate-800 mb-6">Feature Snapshot at Detection Time</h3>
                 <div className="h-64 w-full">
                     <ResponsiveContainer width="100%" height="100%">
-                        <BarChart data={mockFeatureData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
+                        <BarChart data={featureData} margin={{ top: 20, right: 30, left: 20, bottom: 5 }}>
                             <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#E2E8F0" />
                             <XAxis dataKey="name" axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} dy={10} />
                             <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} />
                             <Tooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                             <Bar dataKey="val" radius={[4, 4, 0, 0]}>
-                                {mockFeatureData.map((entry, index) => (
+                                {featureData.map((entry, index) => (
                                     <Cell key={`cell-${index}`} fill={entry.val < 0 ? '#ef4444' : '#6366f1'} />
                                 ))}
                             </Bar>

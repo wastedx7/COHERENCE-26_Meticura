@@ -57,10 +57,48 @@ async def init_db():
     """
     Initialize database
     Creates all tables if they don't exist
+    Creates or updates admin user with correct password
     """
+    from database.models import User, UserRole
+    from auth.utils import hash_password
+    
     # Create all tables
     Base.metadata.create_all(bind=engine)
     print("Database initialized - all tables created")
+    
+    # Ensure admin user exists with correct password
+    try:
+        with get_db_context() as db:
+            existing_admin = db.query(User).filter(
+                User.email == settings.SUPER_ADMIN_EMAIL
+            ).first()
+            
+            new_password_hash = hash_password(settings.SUPER_ADMIN_PASSWORD)
+            
+            if not existing_admin:
+                # Create new admin user
+                admin_user = User(
+                    email=settings.SUPER_ADMIN_EMAIL,
+                    password_hash=new_password_hash,
+                    full_name=settings.SUPER_ADMIN_NAME,
+                    phone=None,
+                    role=UserRole.ADMIN,
+                    is_active=True
+                )
+                db.add(admin_user)
+                db.commit()
+                print(f"✓ Admin user created: {settings.SUPER_ADMIN_EMAIL}")
+            else:
+                # Update existing admin user's password to ensure it's correct
+                existing_admin.password_hash = new_password_hash
+                existing_admin.full_name = settings.SUPER_ADMIN_NAME
+                existing_admin.is_active = True
+                if existing_admin.role != UserRole.ADMIN:
+                    existing_admin.role = UserRole.ADMIN
+                db.commit()
+                print(f"✓ Admin user password updated: {settings.SUPER_ADMIN_EMAIL}")
+    except Exception as e:
+        print(f"⚠ Could not create/update admin user: {str(e)}")
 
 
 async def drop_db():

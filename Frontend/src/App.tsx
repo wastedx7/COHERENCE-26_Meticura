@@ -34,6 +34,8 @@ import { AnomalyProvider } from './context/AnomalyContext';
 import { LapseProvider } from './context/LapseContext';
 import { ReallocationProvider } from './context/ReallocationContext';
 import { DashboardProvider } from './context/DashboardContext';
+import { UsersProvider } from './context/UsersContext';
+import { EngineProvider } from './context/EngineContext';
 
 const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode, allowedRoles?: string[] }) => {
   const { role, isLoading, isAuthenticated } = useAuth();
@@ -54,7 +56,7 @@ const ProtectedRoute = ({ children, allowedRoles }: { children: React.ReactNode,
   }
 
   // Check role-based access on routes with allowedRoles
-  if (allowedRoles && role && !allowedRoles.includes(role)) {
+  if (allowedRoles && (!role || !allowedRoles.includes(role))) {
     return <Navigate to="/dashboard" replace />;
   }
 
@@ -67,7 +69,13 @@ const DataProviders = ({ children }: { children: React.ReactNode }) => {
       <BudgetProvider>
         <AnomalyProvider>
           <LapseProvider>
-            <ReallocationProvider>{children}</ReallocationProvider>
+            <ReallocationProvider>
+              <UsersProvider>
+                <EngineProvider>
+                  {children}
+                </EngineProvider>
+              </UsersProvider>
+            </ReallocationProvider>
           </LapseProvider>
         </AnomalyProvider>
       </BudgetProvider>
@@ -112,27 +120,27 @@ export default function App() {
           <Route path="/lapse" element={<LapsePage />} />
           <Route path="/lapse/department/:id" element={<DeptLapsePage />} />
 
-          {/* Reallocation */}
-          <Route path="/reallocation" element={<ReallocationPage />} />
-          <Route path="/reallocation/:id" element={<SuggestionDetailPage />} />
+          {/* Reallocation - Manager and Admin only */}
+          <Route path="/reallocation" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><ReallocationPage /></ProtectedRoute>} />
+          <Route path="/reallocation/:id" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><SuggestionDetailPage /></ProtectedRoute>} />
 
           {/* Tree */}
           <Route path="/tree" element={<TreePage />} />
 
-          {/* Reports */}
-          <Route path="/reports" element={<ReportsPage />} />
+          {/* Reports - Admin, Manager, and Analyst only */}
+          <Route path="/reports" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'analyst']}><ReportsPage /></ProtectedRoute>} />
 
-          {/* Engine */}
-          <Route path="/engine" element={<EnginePage />} />
+          {/* Engine - Admin only */}
+          <Route path="/engine" element={<ProtectedRoute allowedRoles={['admin']}><EnginePage /></ProtectedRoute>} />
 
-          {/* ML Models */}
-          <Route path="/my-models" element={<MyModelsPage />} />
+          {/* ML Models - Admin, Manager, and Analyst only */}
+          <Route path="/my-models" element={<ProtectedRoute allowedRoles={['admin', 'manager', 'analyst']}><MyModelsPage /></ProtectedRoute>} />
 
-          {/* Role-gated: Center Admin */}
-          <Route path="/users" element={<ProtectedRoute allowedRoles={['center_admin']}><UsersPage /></ProtectedRoute>} />
+          {/* Users - Admin only */}
+          <Route path="/users" element={<ProtectedRoute allowedRoles={['admin']}><UsersPage /></ProtectedRoute>} />
 
-          {/* Role-gated: Dept Admin */}
-          <Route path="/transactions" element={<ProtectedRoute allowedRoles={['dept_admin']}><TransactionsPage /></ProtectedRoute>} />
+          {/* Transactions - Admin and Manager only */}
+          <Route path="/transactions" element={<ProtectedRoute allowedRoles={['admin', 'manager']}><TransactionsPage /></ProtectedRoute>} />
         </Route>
 
         {/* Citizen Dashboard (Public transparent portal) */}

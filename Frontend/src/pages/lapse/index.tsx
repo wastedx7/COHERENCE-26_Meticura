@@ -13,6 +13,7 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 export default function LapsePage() {
     const { predictions, summary, critical, fetchAll, fetchSummary, fetchCritical, isLoading } = useLapse();
     const [riskFilter, setRiskFilter] = useState('all');
+    const criticalRows = critical.length > 0 ? critical : predictions.filter((p: any) => p.risk_level === 'critical');
 
     useEffect(() => {
         fetchAll();
@@ -23,12 +24,6 @@ export default function LapsePage() {
     const filteredPredictions = riskFilter === 'all'
         ? predictions
         : predictions.filter((p: any) => p.risk_level === riskFilter);
-
-    const mockCritical = [
-        { department_id: 112, name: 'Urban Infrastructure', lapse_amount: 14500000, risk_score: 0.89 },
-        { department_id: 45, name: 'Water Resources', lapse_amount: 8200000, risk_score: 0.72 },
-        { department_id: 8, name: 'Public Works', lapse_amount: 5100000, risk_score: 0.65 }
-    ];
 
     return (
         <div className="flex flex-col gap-6 animate-fade-in pb-12">
@@ -67,7 +62,7 @@ export default function LapsePage() {
                         <p className="text-xs text-white/80 mt-1">Top critical lapse risks by magnitude</p>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
-                        {(critical.length > 0 ? critical : mockCritical).slice(0, 3).map((item: any, i: number) => (
+                        {criticalRows.slice(0, 3).map((item: any, i: number) => (
                             <div key={i} className="flex justify-between items-center pb-3 border-b border-slate-100 last:border-0 last:pb-0">
                                 <div>
                                     <p className="font-bold text-slate-800 text-sm leading-tight">{item.name}</p>

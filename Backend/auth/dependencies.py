@@ -51,16 +51,23 @@ async def get_current_user(
         )
 
     token = credentials.credentials
-    
+
     # Try to decode as custom JWT token
     try:
         payload = jwt.decode(token, settings.SECRET_KEY, algorithms=["HS256"])
-        user_id: int = payload.get("sub")
-        
-        if user_id is None:
+        sub = payload.get("sub")
+        if sub is None:
             raise HTTPException(
                 status_code=status.HTTP_401_UNAUTHORIZED,
                 detail="Invalid token: no user id found",
+            )
+        
+        try:
+            user_id = int(sub)
+        except (TypeError, ValueError):
+            raise HTTPException(
+                status_code=status.HTTP_401_UNAUTHORIZED,
+                detail="Invalid token: malformed user id",
             )
         
         # Look up user in database

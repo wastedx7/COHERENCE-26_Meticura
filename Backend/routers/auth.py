@@ -102,7 +102,7 @@ async def login(request: UserLoginRequest, db: Session = Depends(get_db)):
     # Create JWT token
     access_token_expires = timedelta(hours=24)
     access_token = create_access_token(
-        data={"sub": user.id, "email": user.email, "role": user.role.value},
+        data={"sub": str(user.id), "email": user.email, "role": user.role.value},
         expires_delta=access_token_expires
     )
     

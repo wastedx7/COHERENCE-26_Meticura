@@ -4,14 +4,6 @@ import { useBudget } from '../../context/BudgetContext';
 import { ChevronLeft, FileText, ArrowUpRight, TrendingUp } from 'lucide-react';
 import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
 
-const mockCategoryData = [
-    { name: 'Personnel', amount: 450000 },
-    { name: 'Operations', amount: 230000 },
-    { name: 'Equipment', amount: 120000 },
-    { name: 'Travel', amount: 45000 },
-    { name: 'Supplies', amount: 85000 },
-];
-
 export function DeptBudgetPage() {
     const { id } = useParams();
     const { selectedDept, fetchDeptDetail, isLoading } = useBudget();
@@ -102,19 +94,25 @@ export function DeptBudgetPage() {
                 <div className="glass-card p-6">
                     <h3 className="text-lg font-bold text-slate-800 mb-6">Spend by Category</h3>
                     <div className="h-64 w-full">
-                        <ResponsiveContainer width="100%" height="100%">
-                            <BarChart layout="vertical" data={mockCategoryData} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
-                                <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
-                                <XAxis type="number" hide />
+                        {dept.category_breakdown && dept.category_breakdown.length > 0 ? (
+                            <ResponsiveContainer width="100%" height="100%">
+                                <BarChart layout="vertical" data={dept.category_breakdown} margin={{ top: 0, right: 0, left: 0, bottom: 0 }}>
+                                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#E2E8F0" />
+                                    <XAxis type="number" hide />
                                 <YAxis dataKey="name" type="category" axisLine={false} tickLine={false} tick={{ fill: '#475569', fontSize: 13 }} width={100} />
                                 <Tooltip cursor={{ fill: '#F1F5F9' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                                 <Bar dataKey="amount" radius={[0, 4, 4, 0]} barSize={24}>
-                                    {mockCategoryData.map((entry, index) => (
+                                    {dept.category_breakdown.map((entry: any, index: number) => (
                                         <Cell key={`cell-${index}`} fill={['#6366f1', '#8b5cf6', '#0ea5e9', '#14b8a6', '#f59e0b'][index % 5]} />
                                     ))}
                                 </Bar>
                             </BarChart>
                         </ResponsiveContainer>
+                        ) : (
+                            <div className="h-full flex items-center justify-center text-slate-500">
+                                <p>No category breakdown available</p>
+                            </div>
+                        )}
                     </div>
                 </div>
 
