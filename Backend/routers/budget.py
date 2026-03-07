@@ -9,17 +9,13 @@ from sqlalchemy import func, desc, and_
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field
-import time
 
 from auth import require_auth, AuthenticatedUser
 from database import get_db
 from database.models import Department, BudgetAllocation, Transaction, LaspePrediction
+from services.cache import ttl_cache, invalidate as cache_invalidate
 
 router = APIRouter(prefix="/budget", tags=["budget"])
-
-# Short-lived in-memory cache to reduce repeated dashboard refresh pressure.
-_OVERVIEW_CACHE_TTL_SECONDS = 20
-_overview_cache: dict = {"ts": 0.0, "data": None}
 
 
 # ============================================================================
@@ -131,10 +127,6 @@ def get_budget_overview(
     - Average utilization
     """
     try:
-        now = time.time()
-        if _overview_cache["data"] is not None and (now - _overview_cache["ts"]) < _OVERVIEW_CACHE_TTL_SECONDS:
-            return _overview_cache["data"]
-
         latest_alloc_year_sq = db.query(
             BudgetAllocation.dept_id.label("dept_id"),
             func.max(BudgetAllocation.fiscal_year).label("max_year")
@@ -204,8 +196,6 @@ def get_budget_overview(
             "total_departments": len(dept_budget_rows),
         }
 
-        _overview_cache["ts"] = now
-        _overview_cache["data"] = response
         return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
@@ -477,6 +467,41 @@ def list_all_budgets(
         raise HTTPException(status_code=500, detail=str(e))
 
 
+@router.get("/departments/{dept_id}/transactions")
+def list_department_transactions(
+    dept_id: int,
+    limit: int = Query(20, ge=1, le=200),
+    offset: int = Query(0, ge=0),
+    db: Session = Depends(get_db),
+    user: AuthenticatedUser = Depends(require_auth),
+):
+    """List recent transactions for a department, newest first."""
+    dept = db.query(Department).filter(Department.dept_id == dept_id).first()
+    if not dept:
+        raise HTTPException(status_code=404, detail=f"Department {dept_id} not found")
+    txns = (
+        db.query(Transaction)
+        .filter(Transaction.dept_id == dept_id)
+        .order_by(Transaction.date.desc())
+        .offset(offset)
+        .limit(limit)
+        .all()
+    )
+    return {
+        "department_id": dept_id,
+        "transactions": [
+            {
+                "id": t.id,
+                "amount": t.amount,
+                "category": t.category,
+                "description": t.description,
+                "date": t.date.isoformat() if t.date else None,
+            }
+            for t in txns
+        ],
+    }
+
+
 @router.post("/departments/{dept_id}/transactions")
 def create_department_transaction(
     dept_id: int,
@@ -501,6 +526,10 @@ def create_department_transaction(
     db.add(txn)
     db.commit()
     db.refresh(txn)
+
+    # Invalidate budget caches so next read picks up the new transaction
+    cache_invalidate("get_budget_overview")
+    cache_invalidate("get_department_budget_summary")
 
     trigger_status = "skipped"
     try:

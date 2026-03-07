@@ -35,8 +35,8 @@ export function SuggestionDetailPage() {
         navigate('/reallocation');
     };
 
-    const canApprove = role === 'center_admin' || role === 'district_admin';
-    const canExecute = role === 'center_admin';
+    const canApprove = role === 'admin' || role === 'manager';
+    const canExecute = role === 'admin';
 
     return (
         <div className="animate-fade-in pb-12">

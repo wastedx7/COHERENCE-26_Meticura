@@ -4,7 +4,7 @@ Database initialization and session management
 import os
 from sqlalchemy import create_engine, text
 from sqlalchemy.orm import sessionmaker, Session
-from sqlalchemy.pool import NullPool
+from sqlalchemy.pool import NullPool, QueuePool
 from contextlib import contextmanager
 from typing import Generator
 
@@ -12,23 +12,46 @@ from config import settings
 from database.models import Base
 
 
-# Create engine with connection pooling
+# ---------------------------------------------------------------------------
+# Engine configuration – tuned for Supabase connection-pooler (session mode)
+# ---------------------------------------------------------------------------
 db_url = settings.DATABASE_URL
 connect_args = {}
 
-# Driver-specific connection arguments
+# Detect if we're talking to Supabase pooler (session mode has strict limits)
+_is_supabase = "supabase" in db_url
+
 if db_url.startswith("postgresql"):
-    connect_args = {"connect_timeout": 10}
+    connect_args = {
+        "connect_timeout": 10,
+        # Supabase pooler doesn't support prepared statements in session mode
+        **({"options": "-c statement_timeout=30000"} if _is_supabase else {}),
+    }
 elif db_url.startswith("sqlite"):
     connect_args = {"timeout": 10}
 
-engine = create_engine(
-    db_url,
-    echo=False,  # Set to True for SQL debugging
-    pool_pre_ping=True,  # Test connections before using them
-    pool_recycle=3600,  # Recycle connections every hour
-    connect_args=connect_args,
-)
+# For Supabase pooler: use NullPool so we never hold idle connections.
+# For local/self-hosted PG: use a small QueuePool.
+if _is_supabase:
+    engine = create_engine(
+        db_url,
+        echo=False,
+        poolclass=NullPool,          # No local pool → one DBAPI conn per request
+        pool_pre_ping=True,
+        connect_args=connect_args,
+    )
+else:
+    engine = create_engine(
+        db_url,
+        echo=False,
+        poolclass=QueuePool,
+        pool_size=5,                 # Max 5 persistent connections
+        max_overflow=3,              # Allow 3 extra under burst
+        pool_pre_ping=True,
+        pool_recycle=1800,           # Recycle every 30 min
+        pool_timeout=10,             # Wait max 10s for a free connection
+        connect_args=connect_args,
+    )
 
 # Create session factory
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-import { api } from '../lib/api';
+import { api, cachedGet } from '../lib/api';
 
 const normalizeBudgetRow = (row: any) => ({
     id: row.department_id ?? row.id,
@@ -41,8 +41,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchOverview = async () => {
         try {
-            const res = await api.get('/budget/overview');
-            const data = res.data;
+            const data = await cachedGet('/budget/overview');
             const summary = data?.summary || {};
             setOverview({
                 total_allocated: summary.total_allocated_budget ?? 0,
@@ -96,8 +95,8 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     const fetchForecast = async () => {
         setIsLoading(true);
         try {
-            const res = await api.get('/budget/forecast?limit=20');
-            const rows = res.data?.forecast || [];
+            const data = await cachedGet('/budget/forecast', { limit: 20 });
+            const rows = data?.forecast || [];
             setForecast(rows.map((row: any) => {
                 const allocated = row.allocated_budget ?? 0;
                 const spent = row.spent_amount ?? 0;
@@ -123,8 +122,8 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     const fetchTopUtilization = async () => {
         setIsLoading(true);
         try {
-            const res = await api.get('/budget/top-utilization?limit=10');
-            setDepartments((res.data?.top_utilization || []).map(normalizeBudgetRow));
+            const data = await cachedGet('/budget/top-utilization', { limit: 10 });
+            setDepartments((data?.top_utilization || []).map(normalizeBudgetRow));
         } catch (e) {
             console.error(e);
         } finally {
