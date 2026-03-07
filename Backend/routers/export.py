@@ -19,6 +19,31 @@ logger = logging.getLogger(__name__)
 
 export_service = ExportService()
 
+# Severity is derived from anomaly_score, not stored in the DB.
+_SEVERITY_THRESHOLDS = [
+    (0.75, 'critical'),
+    (0.50, 'high'),
+    (0.25, 'medium'),
+]
+
+def _score_to_severity(score: float | None) -> str:
+    """Map an anomaly_score (0-1) to a severity label."""
+    s = score or 0.0
+    for threshold, label in _SEVERITY_THRESHOLDS:
+        if s >= threshold:
+            return label
+    return 'low'
+
+def _severity_score_range(severity: str):
+    """Return (min_inclusive, max_exclusive) anomaly_score range for a severity label."""
+    ranges = {
+        'critical': (0.75, None),
+        'high':     (0.50, 0.75),
+        'medium':   (0.25, 0.50),
+        'low':      (None, 0.25),
+    }
+    return ranges.get(severity, (None, None))
+
 
 @router.get("/anomalies.csv")
 def export_anomalies_csv(
@@ -43,19 +68,23 @@ def export_anomalies_csv(
         query = db.query(Anomaly)
         
         if severity:
-            query = query.filter(Anomaly.severity == severity)
+            lo, hi = _severity_score_range(severity)
+            if lo is not None:
+                query = query.filter(Anomaly.anomaly_score >= lo)
+            if hi is not None:
+                query = query.filter(Anomaly.anomaly_score < hi)
         
         if department_id:
             query = query.filter(Anomaly.dept_id == department_id)
         
         anomalies = query.order_by(desc(Anomaly.created_at)).limit(1000).all()
         
-        # Convert to dictionaries
+        # Convert to dictionaries (severity derived from anomaly_score)
         anomaly_dicts = [
             {
                 "department_id": a.dept_id,
                 "anomaly_type": a.anomaly_type,
-                "severity": a.severity,
+                "severity": _score_to_severity(a.anomaly_score),
                 "anomaly_score": a.anomaly_score,
                 "confidence": a.confidence,
                 "reason": a.reason,
@@ -113,19 +142,23 @@ def export_anomalies_pdf(
         query = db.query(Anomaly)
         
         if severity:
-            query = query.filter(Anomaly.severity == severity)
+            lo, hi = _severity_score_range(severity)
+            if lo is not None:
+                query = query.filter(Anomaly.anomaly_score >= lo)
+            if hi is not None:
+                query = query.filter(Anomaly.anomaly_score < hi)
         
         if department_id:
             query = query.filter(Anomaly.dept_id == department_id)
         
         anomalies = query.order_by(desc(Anomaly.created_at)).limit(1000).all()
         
-        # Convert to dictionaries
+        # Convert to dictionaries (severity derived from anomaly_score)
         anomaly_dicts = [
             {
                 "department_id": a.dept_id,
                 "anomaly_type": a.anomaly_type,
-                "severity": a.severity,
+                "severity": _score_to_severity(a.anomaly_score),
                 "anomaly_score": a.anomaly_score,
                 "confidence": a.confidence,
                 "reason": a.reason,
