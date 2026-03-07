@@ -5,16 +5,21 @@ API endpoints for budget overview, analysis, and comparisons
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Path
 from sqlalchemy.orm import Session
-from sqlalchemy import func, desc
+from sqlalchemy import func, desc, and_
 from datetime import datetime
 from typing import List, Optional
 from pydantic import BaseModel, Field
+import time
 
 from auth import require_auth, AuthenticatedUser
 from database import get_db
 from database.models import Department, BudgetAllocation, Transaction, LaspePrediction
 
 router = APIRouter(prefix="/budget", tags=["budget"])
+
+# Short-lived in-memory cache to reduce repeated dashboard refresh pressure.
+_OVERVIEW_CACHE_TTL_SECONDS = 20
+_overview_cache: dict = {"ts": 0.0, "data": None}
 
 
 # ============================================================================
@@ -126,25 +131,68 @@ async def get_budget_overview(
     - Average utilization
     """
     try:
-        total_allocated = db.query(func.sum(BudgetAllocation.total_amount)).scalar() or 0.0
-        total_spent = db.query(func.sum(Transaction.amount)).scalar() or 0.0
-        
+        now = time.time()
+        if _overview_cache["data"] is not None and (now - _overview_cache["ts"]) < _OVERVIEW_CACHE_TTL_SECONDS:
+            return _overview_cache["data"]
+
+        latest_alloc_year_sq = db.query(
+            BudgetAllocation.dept_id.label("dept_id"),
+            func.max(BudgetAllocation.fiscal_year).label("max_year")
+        ).group_by(BudgetAllocation.dept_id).subquery()
+
+        latest_alloc_sq = db.query(
+            BudgetAllocation.dept_id.label("dept_id"),
+            BudgetAllocation.total_amount.label("allocated")
+        ).join(
+            latest_alloc_year_sq,
+            and_(
+                BudgetAllocation.dept_id == latest_alloc_year_sq.c.dept_id,
+                BudgetAllocation.fiscal_year == latest_alloc_year_sq.c.max_year,
+            )
+        ).subquery()
+
+        spent_sq = db.query(
+            Transaction.dept_id.label("dept_id"),
+            func.sum(Transaction.amount).label("spent")
+        ).group_by(Transaction.dept_id).subquery()
+
+        dept_budget_rows = db.query(
+            Department.dept_id,
+            func.coalesce(latest_alloc_sq.c.allocated, 0.0).label("allocated"),
+            func.coalesce(spent_sq.c.spent, 0.0).label("spent"),
+        ).outerjoin(
+            latest_alloc_sq,
+            latest_alloc_sq.c.dept_id == Department.dept_id,
+        ).outerjoin(
+            spent_sq,
+            spent_sq.c.dept_id == Department.dept_id,
+        ).all()
+
+        total_allocated = 0.0
+        total_spent = 0.0
         by_status = {
             'on-track': 0,
             'at-risk': 0,
             'exceeded': 0
         }
-        
-        departments = db.query(Department).all()
-        
-        for dept in departments:
-            summary = await get_department_budget_summary(db, dept.dept_id)
-            if summary:
-                by_status[summary.status] += 1
+
+        for row in dept_budget_rows:
+            allocated = float(row.allocated or 0.0)
+            spent = float(row.spent or 0.0)
+            total_allocated += allocated
+            total_spent += spent
+
+            utilization_pct = (spent / allocated * 100) if allocated > 0 else 0
+            if utilization_pct > 100:
+                by_status['exceeded'] += 1
+            elif utilization_pct > 90:
+                by_status['at-risk'] += 1
+            else:
+                by_status['on-track'] += 1
         
         avg_utilization = (total_spent / total_allocated * 100) if total_allocated > 0 else 0
-        
-        return {
+
+        response = {
             "timestamp": datetime.utcnow().isoformat(),
             "summary": {
                 "total_allocated_budget": round(total_allocated, 2),
@@ -153,8 +201,12 @@ async def get_budget_overview(
                 "average_utilization_percentage": round(avg_utilization, 2),
             },
             "departments_by_status": by_status,
-            "total_departments": len(departments),
+            "total_departments": len(dept_budget_rows),
         }
+
+        _overview_cache["ts"] = now
+        _overview_cache["data"] = response
+        return response
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
