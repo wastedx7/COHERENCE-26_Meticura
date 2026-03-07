@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "timestamp": "2026-03-07T04:31:52.989055",
+  "target_accuracy": 0.9,
+  "ensemble_method": "stacked_logistic",
+  "best_threshold": 0.585,
+  "best_accuracy": 0.968,
+  "precision": 1.0,
+  "recall": 0.2,
+  "f1_score": 0.3333333333333333,
+  "auc_roc": 0.9,
+  "weights": {
+    "isolation_forest": 0.3,
+    "lof": 0.2,
+    "ocsvm": 0.15,
+    "autoencoder": 0.2,
+    "dbscan": 0.1,
+    "elliptic_envelope": 0.05
+  },
+  "label_distribution": {
+    "positive": 22,
+    "negative": 478
+  },
+  "confusion_matrix": {
+    "true_negatives": 120,
+    "false_positives": 0,
+    "false_negatives": 4,
+    "true_positives": 1,
+    "matrix": [
+      [
+        120,
+        0
+      ],
+      [
+        4,
+        1
+      ]
+    ]
+  }
+}

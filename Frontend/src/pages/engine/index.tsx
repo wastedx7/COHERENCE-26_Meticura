@@ -5,6 +5,7 @@ import {
   Shield, Sparkles
 } from 'lucide-react';
 import { useEngine } from '../../context/EngineContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { api } from '../../lib/api';
 
 export default function EnginePage() {
@@ -13,6 +14,8 @@ export default function EnginePage() {
         lastPipelineResult, lastTrainingResult, error,
         runPipeline, retrainModels, seedDatabase
     } = useEngine();
+
+    const { t } = useLanguage();
 
     const [notification, setNotification] = useState<{ type: 'success' | 'error', message: string } | null>(null);
     const [healthStatus, setHealthStatus] = useState<'checking' | 'healthy' | 'degraded'>('checking');
@@ -51,7 +54,7 @@ export default function EnginePage() {
     };
 
     const handleSeedDatabase = async () => {
-        if (!confirm('This will seed the database with synthetic test data. Continue?')) return;
+        if (!confirm(t('engine.action.seedDatabase.confirm'))) return;
         try {
             await seedDatabase();
             notify('success', 'Database seeded successfully!', 'Seed Database');
@@ -71,8 +74,8 @@ export default function EnginePage() {
                         <Settings className={`w-7 h-7 text-white ${isAnyRunning ? 'animate-spin' : ''}`} />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">Engine Control</h1>
-                        <p className="text-slate-500 text-sm">Monitor, execute and control the AI/ML pipeline</p>
+                        <h1 className="text-3xl font-black text-slate-900 tracking-tight">{t('engine.title')}</h1>
+                        <p className="text-slate-500 text-sm">{t('engine.subtitle')}</p>
                     </div>
                 </div>
                 <div className="flex items-center gap-3">
@@ -82,7 +85,7 @@ export default function EnginePage() {
                         'bg-slate-50 border-slate-200 text-slate-500'
                     }`}>
                         <span className={`w-2.5 h-2.5 rounded-full ${healthStatus === 'healthy' ? 'bg-emerald-500 animate-pulse' : healthStatus === 'degraded' ? 'bg-red-500' : 'bg-slate-400 animate-pulse'}`} />
-                        {healthStatus === 'checking' ? 'Checking...' : healthStatus === 'healthy' ? 'All Systems Healthy' : 'Degraded'}
+                        {healthStatus === 'checking' ? t('engine.health.checking') : healthStatus === 'healthy' ? t('engine.health.healthy') : t('engine.health.degraded')}
                     </div>
                 </div>
             </div>
@@ -106,22 +109,22 @@ export default function EnginePage() {
             <div className="grid grid-cols-1 md:grid-cols-3 gap-5 mb-8">
                 {[
                     {
-                        title: 'Run Pipeline', desc: 'Execute full anomaly detection pipeline across all departments',
+                        title: t('engine.action.runPipeline.title'), desc: t('engine.action.runPipeline.desc'),
                         icon: PlayCircle, gradient: 'from-indigo-500 to-blue-600', shadow: 'shadow-indigo-500/25',
                         border: 'border-indigo-100 hover:border-indigo-300', loading: isRunningPipeline, onClick: handleRunPipeline,
-                        loadingText: 'Running pipeline...', badge: 'Detection + Scoring'
+                        loadingText: 'Running pipeline...', badge: t('engine.action.runPipeline.badge')
                     },
                     {
-                        title: 'Retrain Models', desc: 'Retrain all 6 ML models with the latest transaction data',
+                        title: t('engine.action.retrainModels.title'), desc: t('engine.action.retrainModels.desc'),
                         icon: Zap, gradient: 'from-emerald-500 to-teal-600', shadow: 'shadow-emerald-500/25',
                         border: 'border-emerald-100 hover:border-emerald-300', loading: isTrainingModels, onClick: handleRetrainModels,
-                        loadingText: 'Training models...', badge: '6 Models'
+                        loadingText: 'Training models...', badge: t('engine.action.retrainModels.badge')
                     },
                     {
-                        title: 'Seed Database', desc: 'Populate the database with synthetic departments & transactions',
+                        title: t('engine.action.seedDatabase.title'), desc: t('engine.action.seedDatabase.desc'),
                         icon: Database, gradient: 'from-amber-500 to-orange-600', shadow: 'shadow-amber-500/25',
                         border: 'border-amber-100 hover:border-amber-300', loading: isSeedingData, onClick: handleSeedDatabase,
-                        loadingText: 'Seeding data...', badge: 'Test Data'
+                        loadingText: 'Seeding data...', badge: t('engine.action.seedDatabase.badge')
                     },
                 ].map(card => (
                     <button key={card.title} onClick={card.onClick} disabled={card.loading}
@@ -154,7 +157,7 @@ export default function EnginePage() {
                 <div className="glass-card p-6 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-4 relative z-10">
-                        <Activity className="w-4 h-4 text-indigo-500" /> Last Pipeline Execution
+                        <Activity className="w-4 h-4 text-indigo-500" /> {t('engine.result.pipeline.title')}
                     </h3>
                     {lastPipelineResult ? (
                         <div className="space-y-3 relative z-10">
@@ -174,7 +177,7 @@ export default function EnginePage() {
                     ) : (
                         <div className="py-6 text-center text-slate-400 relative z-10">
                             <Terminal className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                            <p className="text-sm">No pipeline results yet</p>
+                            <p className="text-sm">{t('engine.result.pipeline.noResults')}</p>
                         </div>
                     )}
                 </div>
@@ -183,7 +186,7 @@ export default function EnginePage() {
                 <div className="glass-card p-6 relative overflow-hidden">
                     <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-50 rounded-full blur-3xl -translate-y-1/2 translate-x-1/3" />
                     <h3 className="text-sm font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-4 relative z-10">
-                        <RefreshCw className="w-4 h-4 text-emerald-500" /> Last Model Training
+                        <RefreshCw className="w-4 h-4 text-emerald-500" /> {t('engine.result.training.title')}
                     </h3>
                     {lastTrainingResult ? (
                         <div className="space-y-3 relative z-10">
@@ -199,9 +202,9 @@ export default function EnginePage() {
                             {lastTrainingResult.mode === 'inline' && (
                                 <div className="grid grid-cols-3 gap-2 mt-2">
                                     {[
-                                        { label: 'Lapse R²', value: lastTrainingResult.lapse_r2, color: 'text-indigo-700' },
-                                        { label: 'Anomaly Acc', value: lastTrainingResult.anomaly_accuracy, color: 'text-emerald-700' },
-                                        { label: 'Ensemble Acc', value: lastTrainingResult.ensemble_accuracy, color: 'text-purple-700' },
+                                        { label: t('engine.result.training.lapseR2'), value: lastTrainingResult.lapse_r2, color: 'text-indigo-700' },
+                                        { label: t('engine.result.training.anomalyAcc'), value: lastTrainingResult.anomaly_accuracy, color: 'text-emerald-700' },
+                                        { label: t('engine.result.training.ensembleAcc'), value: lastTrainingResult.ensemble_accuracy, color: 'text-purple-700' },
                                     ].map(m => (
                                         <div key={m.label} className="bg-slate-50 rounded-xl p-3 text-center">
                                             <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{m.label}</p>
@@ -214,7 +217,7 @@ export default function EnginePage() {
                     ) : (
                         <div className="py-6 text-center text-slate-400 relative z-10">
                             <Cpu className="w-8 h-8 mx-auto mb-2 text-slate-300" />
-                            <p className="text-sm">No training results yet</p>
+                            <p className="text-sm">{t('engine.result.training.noResults')}</p>
                         </div>
                     )}
                 </div>
@@ -226,14 +229,14 @@ export default function EnginePage() {
                 <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/10 rounded-full blur-[80px] translate-y-1/2 -translate-x-1/3" />
 
                 <h3 className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-6 flex items-center gap-2 relative z-10">
-                    <Sparkles className="w-4 h-4" /> System Infrastructure
+                    <Sparkles className="w-4 h-4" /> {t('engine.system.title')}
                 </h3>
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-5 relative z-10">
                     {[
-                        { title: 'Anomaly Detection', desc: 'Rule Engine + 6 ML Models', icon: Shield, status: 'ACTIVE', statusColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
-                        { title: 'Database', desc: 'PostgreSQL via Supabase', icon: Database, status: 'CONNECTED', statusColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
-                        { title: 'API Gateway', desc: 'FastAPI + Uvicorn', icon: Server, status: 'READY', statusColor: 'bg-slate-500/20 text-slate-300 border-slate-500/30' },
-                        { title: 'ML Pipeline', desc: 'Celery + Inline fallback', icon: Gauge, status: isAnyRunning ? 'RUNNING' : 'IDLE', statusColor: isAnyRunning ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-slate-500/20 text-slate-300 border-slate-500/30' },
+                        { title: t('engine.system.anomalyDetection'), desc: 'Rule Engine + 6 ML Models', icon: Shield, status: 'ACTIVE', statusColor: 'bg-emerald-500/20 text-emerald-300 border-emerald-500/30' },
+                        { title: t('engine.system.database'), desc: 'PostgreSQL via Supabase', icon: Database, status: 'CONNECTED', statusColor: 'bg-indigo-500/20 text-indigo-300 border-indigo-500/30' },
+                        { title: t('engine.system.apiGateway'), desc: 'FastAPI + Uvicorn', icon: Server, status: 'READY', statusColor: 'bg-slate-500/20 text-slate-300 border-slate-500/30' },
+                        { title: t('engine.system.mlPipeline'), desc: 'Celery + Inline fallback', icon: Gauge, status: isAnyRunning ? 'RUNNING' : 'IDLE', statusColor: isAnyRunning ? 'bg-amber-500/20 text-amber-300 border-amber-500/30' : 'bg-slate-500/20 text-slate-300 border-slate-500/30' },
                     ].map(s => (
                         <div key={s.title} className="flex gap-3">
                             <div className="mt-0.5"><s.icon className="w-7 h-7 text-slate-400" /></div>
@@ -251,7 +254,7 @@ export default function EnginePage() {
             {actionLog.length > 0 && (
                 <div className="glass-card p-6">
                     <h3 className="text-xs font-bold text-slate-400 uppercase tracking-wider flex items-center gap-2 mb-4">
-                        <Clock className="w-3.5 h-3.5" /> Action Log
+                        <Clock className="w-3.5 h-3.5" /> {t('engine.actionLog.title')}
                     </h3>
                     <div className="space-y-2">
                         {actionLog.map((log, i) => (

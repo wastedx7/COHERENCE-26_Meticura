@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useLapse } from '../../context/LapseContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Link } from 'react-router-dom';
 import {
     TrendingDown,
@@ -13,6 +14,14 @@ import { PieChart, Pie, Cell, ResponsiveContainer, Tooltip } from 'recharts';
 export default function LapsePage() {
     const { predictions, summary, critical, fetchAll, fetchSummary, fetchCritical, isLoading } = useLapse();
     const [riskFilter, setRiskFilter] = useState('all');
+    const { t } = useLanguage();
+    const riskFilterLabels: Record<string, string> = {
+        all: t('lapse.filter.all'),
+        low: t('lapse.risk.low'),
+        medium: t('lapse.risk.medium'),
+        high: t('lapse.risk.high'),
+        critical: t('lapse.risk.critical'),
+    };
     const criticalRows = critical.length > 0 ? critical : predictions.filter((p: any) => p.risk_level === 'critical');
 
     useEffect(() => {
@@ -29,24 +38,24 @@ export default function LapsePage() {
         <div className="flex flex-col gap-6 animate-fade-in pb-12">
             <div className="flex justify-between items-end mb-2">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Lapse Prediction Hub</h1>
-                    <p className="text-slate-500 mt-1">AI-driven forecasts for unspent budget returns at EOFY</p>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t('lapse.title')}</h1>
+                    <p className="text-slate-500 mt-1">{t('lapse.subtitle')}</p>
                 </div>
                 <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm font-medium transition-colors">
-                    Download ML Report
+                    {t('lapse.downloadReport')}
                 </button>
             </div>
 
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="glass-panel p-6 lg:col-span-2 flex flex-col justify-center">
-                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">Risk Level Distribution</h3>
+                    <h3 className="text-sm font-semibold text-slate-500 uppercase tracking-wider mb-4">{t('lapse.riskDistribution')}</h3>
                     <div className="grid grid-cols-2 lg:grid-cols-5 gap-3">
                         {[
-                            { label: 'Low', count: summary?.low || 140, color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
-                            { label: 'Medium', count: summary?.medium || 35, color: 'bg-blue-50 text-blue-700 border-blue-100' },
-                            { label: 'High', count: summary?.high || 12, color: 'bg-orange-50 text-orange-700 border-orange-100' },
-                            { label: 'Critical', count: summary?.critical || 8, color: 'bg-red-50 text-red-700 border-red-100' },
-                            { label: 'Depleted', count: summary?.depleted || 5, color: 'bg-slate-100 text-slate-700 border-slate-200' },
+                            { label: t('lapse.risk.low'), count: summary?.low || 140, color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
+                            { label: t('lapse.risk.medium'), count: summary?.medium || 35, color: 'bg-blue-50 text-blue-700 border-blue-100' },
+                            { label: t('lapse.risk.high'), count: summary?.high || 12, color: 'bg-orange-50 text-orange-700 border-orange-100' },
+                            { label: t('lapse.risk.critical'), count: summary?.critical || 8, color: 'bg-red-50 text-red-700 border-red-100' },
+                            { label: t('lapse.risk.depleted'), count: summary?.depleted || 5, color: 'bg-slate-100 text-slate-700 border-slate-200' },
                         ].map(r => (
                             <div key={r.label} className={`border rounded-xl p-4 text-center shadow-sm ${r.color}`}>
                                 <p className="text-xs font-bold uppercase">{r.label}</p>
@@ -58,8 +67,8 @@ export default function LapsePage() {
 
                 <div className="glass-card flex flex-col overflow-hidden relative border border-red-100 p-0">
                     <div className="bg-gradient-to-r from-red-600 to-rose-500 p-4 text-white">
-                        <h3 className="font-bold flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> Immediate Action Required</h3>
-                        <p className="text-xs text-white/80 mt-1">Top critical lapse risks by magnitude</p>
+                        <h3 className="font-bold flex items-center gap-2"><ShieldAlert className="w-4 h-4" /> {t('lapse.immediateAction.title')}</h3>
+                        <p className="text-xs text-white/80 mt-1">{t('lapse.immediateAction.subtitle')}</p>
                     </div>
                     <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3">
                         {criticalRows.slice(0, 3).map((item: any, i: number) => (
@@ -75,14 +84,14 @@ export default function LapsePage() {
                         ))}
                     </div>
                     <Link to="/reallocation" className="text-center p-3 text-sm font-semibold text-indigo-600 bg-indigo-50/50 hover:bg-indigo-50 transition-colors border-t border-slate-100">
-                        Send to Reallocation Engine
+                        {t('lapse.sendToReallocation')}
                     </Link>
                 </div>
             </div>
 
             <div className="glass-card mt-2 p-0 overflow-hidden">
                 <div className="p-4 border-b border-slate-200 bg-white/50 flex flex-col sm:flex-row justify-between items-center gap-4">
-                    <h2 className="text-lg font-bold text-slate-800">All Predictions</h2>
+                    <h2 className="text-lg font-bold text-slate-800">{t('lapse.allPredictions')}</h2>
                     <div className="flex bg-white/60 p-1 rounded-lg border border-slate-200 backdrop-blur-sm shadow-sm text-sm">
                         {['all', 'low', 'medium', 'high', 'critical'].map(lvl => (
                             <button
@@ -91,7 +100,7 @@ export default function LapsePage() {
                                 className={`px-3 py-1 font-medium capitalize rounded-md transition-all ${riskFilter === lvl ? 'bg-white shadow text-indigo-600' : 'text-slate-500 hover:text-slate-800'
                                     }`}
                             >
-                                {lvl}
+                                {riskFilterLabels[lvl]}
                             </button>
                         ))}
                     </div>
@@ -100,11 +109,11 @@ export default function LapsePage() {
                 <table className="w-full text-left text-sm">
                     <thead className="bg-slate-50/80">
                         <tr>
-                            <th className="px-6 py-4 font-semibold text-slate-600">Department</th>
-                            <th className="px-6 py-4 font-semibold text-slate-600">Risk Level</th>
-                            <th className="px-6 py-4 font-semibold text-slate-600">Risk Score</th>
-                            <th className="px-6 py-4 font-semibold text-slate-600">Predicted Lapse</th>
-                            <th className="px-6 py-4 font-semibold text-slate-600 text-right">Actions</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600">{t('lapse.table.department')}</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600">{t('lapse.table.riskLevel')}</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600">{t('lapse.table.riskScore')}</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600">{t('lapse.table.predictedLapse')}</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600 text-right">{t('lapse.table.actions')}</th>
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100">
@@ -132,7 +141,7 @@ export default function LapsePage() {
                                     <td className="px-6 py-4 font-bold text-slate-800">₹{(row.lapse_amount / 100000).toFixed(1)}L</td>
                                     <td className="px-6 py-4 text-right">
                                         <Link to={`/lapse/department/${row.id || row.department_id}`} className="text-indigo-600 text-sm font-semibold flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                            View Details <ArrowRight className="w-4 h-4" />
+                                            {t('common.viewDetails')} <ArrowRight className="w-4 h-4" />
                                         </Link>
                                     </td>
                                 </tr>

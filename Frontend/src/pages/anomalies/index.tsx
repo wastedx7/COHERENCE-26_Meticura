@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { useAnomaly } from '../../context/AnomalyContext';
+import { useLanguage } from '../../context/LanguageContext';
 import { Link } from 'react-router-dom';
 import {
     AlertTriangle,
@@ -21,6 +22,7 @@ const verdictColors: any = {
 export default function AnomalyPage() {
     const { anomalies, summary, isLoading, fetchAll } = useAnomaly();
     const [searchTerm, setSearchTerm] = useState('');
+    const { t } = useLanguage();
     const verdictColorValues = Object.values(verdictColors) as string[];
     const summaryChartData = [
         { label: 'normal', value: summary?.normal || 0, color: verdictColors.normal },
@@ -37,15 +39,15 @@ export default function AnomalyPage() {
         <div className="flex flex-col gap-6 animate-fade-in pb-12">
             <div className="flex justify-between items-end">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Anomalies Center</h1>
-                    <p className="text-slate-500 mt-1">Review AI and Rule-based financial anomalies</p>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t('anomalies.title')}</h1>
+                    <p className="text-slate-500 mt-1">{t('anomalies.subtitle')}</p>
                 </div>
                 <div className="flex gap-3">
                     <Link to="/anomalies/advanced" className="px-4 py-2 border border-slate-200 text-slate-700 bg-white rounded-lg shadow-sm font-medium hover:bg-slate-50 transition-colors flex items-center gap-2">
-                        <Filter className="w-4 h-4" /> Advanced Search
+                        <Filter className="w-4 h-4" /> {t('anomalies.advancedSearch')}
                     </Link>
                     <Link to="/anomalies/critical" className="px-4 py-2 bg-red-600 hover:bg-red-700 text-white rounded-lg shadow-sm font-medium transition-colors flex items-center gap-2">
-                        <AlertTriangle className="w-4 h-4" /> Critical Alerts
+                        <AlertTriangle className="w-4 h-4" /> {t('anomalies.criticalAlerts')}
                     </Link>
                 </div>
             </div>
@@ -53,18 +55,23 @@ export default function AnomalyPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                 <div className="glass-panel p-6 lg:col-span-2 flex flex-col justify-center">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-                        {['Normal', 'Warning', 'Alert', 'Critical'].map((v, i) => (
-                            <div key={v} className="bg-white/40 border border-slate-200/60 rounded-xl p-4 text-center shadow-sm">
-                                <p className="text-sm font-semibold text-slate-500 uppercase">{v}</p>
+                        {[
+                            { key: 'normal', label: t('anomalies.verdict.normal') },
+                            { key: 'warning', label: t('anomalies.verdict.warning') },
+                            { key: 'alert', label: t('anomalies.verdict.alert') },
+                            { key: 'critical', label: t('anomalies.verdict.critical') },
+                        ].map((v, i) => (
+                            <div key={v.key} className="bg-white/40 border border-slate-200/60 rounded-xl p-4 text-center shadow-sm">
+                                <p className="text-sm font-semibold text-slate-500 uppercase">{v.label}</p>
                                 <p className="text-3xl font-bold mt-1 tracking-tight" style={{ color: verdictColorValues[i] }}>
-                                    {summary?.[v.toLowerCase()] || [140, 35, 15, 10][i]}
+                                    {summary?.[v.key] || [140, 35, 15, 10][i]}
                                 </p>
                             </div>
                         ))}
                     </div>
                 </div>
                 <div className="glass-card p-6 flex flex-col items-center justify-center relative">
-                    <h3 className="text-sm font-semibold text-slate-600 absolute top-6 left-6 z-10">Verdict Distribution</h3>
+                    <h3 className="text-sm font-semibold text-slate-600 absolute top-6 left-6 z-10">{t('anomalies.chart.title')}</h3>
                     <div className="w-full h-40 mt-4">
                         <ResponsiveContainer width="100%" height="100%">
                             <RechartsPieChart>
@@ -85,7 +92,7 @@ export default function AnomalyPage() {
                         <Search className="w-4 h-4 absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
                         <input
                             type="text"
-                            placeholder="Search by dept ID or rule..."
+                            placeholder={t('anomalies.search.placeholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
                             className="w-full pl-9 pr-4 py-1.5 text-sm bg-white/70 border border-slate-200 rounded-md focus:outline-none focus:ring-2 focus:ring-indigo-500"
@@ -96,11 +103,11 @@ export default function AnomalyPage() {
                 <table className="w-full text-left text-sm whitespace-nowrap">
                     <thead className="bg-slate-50/80 backdrop-blur-sm border-b border-slate-200">
                         <tr>
-                            <th className="px-6 py-4 font-semibold text-slate-600">Department</th>
-                            <th className="px-6 py-4 font-semibold text-slate-600">Detection Type</th>
-                            <th className="px-6 py-4 font-semibold text-slate-600">Rule Triggered</th>
-                            <th className="px-6 py-4 font-semibold text-slate-600">Verdict</th>
-                            <th className="px-6 py-4 font-semibold text-slate-600">Score</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600">{t('anomalies.table.department')}</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600">{t('anomalies.table.detectionType')}</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600">{t('anomalies.table.ruleTriggered')}</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600">{t('anomalies.table.verdict')}</th>
+                            <th className="px-6 py-4 font-semibold text-slate-600">{t('anomalies.table.score')}</th>
                             <th className="px-6 py-4 text-right"></th>
                         </tr>
                     </thead>

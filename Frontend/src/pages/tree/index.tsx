@@ -6,6 +6,7 @@ import {
   Filter, ArrowUpRight
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 type DeptNode = {
   department_id: number;
@@ -55,6 +56,7 @@ const STATUS_CONFIG = {
 } as const;
 
 export default function TreePage() {
+  const { t } = useLanguage();
   const navigate = useNavigate();
   const [nodes, setNodes] = useState<DeptNode[]>([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -172,7 +174,7 @@ export default function TreePage() {
           {/* Utilization bar */}
           <div className="mb-3">
             <div className="flex justify-between text-[11px] mb-1">
-              <span className="text-slate-500 font-medium">Utilization</span>
+              <span className="text-slate-500 font-medium">{t('tree.card.utilization')}</span>
               <span className="font-bold text-slate-700">{node.utilization.toFixed(1)}%</span>
             </div>
             <div className="w-full h-2 bg-white/80 rounded-full overflow-hidden shadow-inner">
@@ -182,19 +184,19 @@ export default function TreePage() {
 
           <div className="grid grid-cols-2 gap-2 text-[11px]">
             <div className="bg-white/60 rounded-lg px-2.5 py-1.5">
-              <span className="text-slate-400 block">Lapse Risk</span>
+              <span className="text-slate-400 block">{t('tree.card.lapseRisk')}</span>
               <span className="font-bold text-slate-700 capitalize">{node.lapseRisk || 'low'}</span>
             </div>
             <div className="bg-white/60 rounded-lg px-2.5 py-1.5">
-              <span className="text-slate-400 block">Anomaly</span>
+              <span className="text-slate-400 block">{t('tree.card.anomaly')}</span>
               <span className="font-bold text-slate-700">{node.anomalyScore != null ? node.anomalyScore.toFixed(2) : '—'}</span>
             </div>
           </div>
 
           {node.allocated != null && node.allocated > 0 && (
             <div className="mt-2 flex justify-between text-[10px] text-slate-400">
-              <span>Alloc: ₹{fmt(node.allocated)}</span>
-              <span>Spent: ₹{fmt(node.spent || 0)}</span>
+              <span>{t('tree.card.alloc')}: ₹{fmt(node.allocated)}</span>
+              <span>{t('tree.card.spent')}: ₹{fmt(node.spent || 0)}</span>
             </div>
           )}
         </div>
@@ -232,7 +234,7 @@ export default function TreePage() {
             <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-3">
               {groupNodes.map(n => <NodeCard key={n.department_id} node={n} />)}
             </div>
-            {groupNodes.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">No departments in this category</p>}
+            {groupNodes.length === 0 && <p className="text-sm text-slate-400 py-4 text-center">{t('tree.group.empty')}</p>}
           </div>
         )}
       </div>
@@ -249,8 +251,8 @@ export default function TreePage() {
               <Network className="w-5 h-5 text-white" />
             </div>
             <div>
-              <h1 className="text-3xl font-black text-slate-900 tracking-tight">Organization Tree</h1>
-              <p className="text-slate-500 text-sm">Live hierarchy with budget, anomaly & lapse risk signals</p>
+              <h1 className="text-3xl font-black text-slate-900 tracking-tight">{t('tree.title')}</h1>
+              <p className="text-slate-500 text-sm">{t('tree.subtitle')}</p>
             </div>
           </div>
         </div>
@@ -270,7 +272,7 @@ export default function TreePage() {
             className="flex items-center gap-2 px-4 py-2.5 bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 text-white rounded-xl shadow-md shadow-indigo-500/20 font-medium text-sm transition-all disabled:opacity-50"
           >
             <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-            {isLoading ? 'Loading...' : 'Refresh'}
+            {isLoading ? t('tree.loading') : t('common.refresh')}
           </button>
         </div>
       </div>
@@ -278,10 +280,10 @@ export default function TreePage() {
       {/* Summary strip */}
       <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
         {[
-          { label: 'Total Departments', value: nodes.length, icon: Building2, color: 'from-indigo-500 to-blue-500', bg: 'bg-indigo-50', text: 'text-indigo-700' },
-          { label: 'Critical', value: grouped.critical.length, icon: AlertTriangle, color: 'from-red-500 to-rose-500', bg: 'bg-red-50', text: 'text-red-700' },
-          { label: 'Warning', value: grouped.warning.length, icon: TrendingDown, color: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', text: 'text-amber-700' },
-          { label: 'Healthy', value: grouped.healthy.length, icon: ShieldCheck, color: 'from-emerald-500 to-teal-500', bg: 'bg-emerald-50', text: 'text-emerald-700' },
+          { label: t('tree.summary.totalDepartments'), value: nodes.length, icon: Building2, color: 'from-indigo-500 to-blue-500', bg: 'bg-indigo-50', text: 'text-indigo-700' },
+          { label: t('tree.summary.critical'), value: grouped.critical.length, icon: AlertTriangle, color: 'from-red-500 to-rose-500', bg: 'bg-red-50', text: 'text-red-700' },
+          { label: t('tree.summary.warning'), value: grouped.warning.length, icon: TrendingDown, color: 'from-amber-500 to-orange-500', bg: 'bg-amber-50', text: 'text-amber-700' },
+          { label: t('tree.summary.healthy'), value: grouped.healthy.length, icon: ShieldCheck, color: 'from-emerald-500 to-teal-500', bg: 'bg-emerald-50', text: 'text-emerald-700' },
         ].map(s => (
           <div key={s.label} className="glass-card p-4 flex items-center gap-3 border hover:shadow-md transition-shadow">
             <div className={`w-11 h-11 rounded-xl bg-gradient-to-br ${s.color} flex items-center justify-center shadow-sm`}>
@@ -301,7 +303,7 @@ export default function TreePage() {
         <input
           value={search}
           onChange={e => setSearch(e.target.value)}
-          placeholder="Search departments by name or ID..."
+          placeholder={t('tree.search.placeholder')}
           className="w-full pl-11 pr-4 py-3 bg-white border border-slate-200 rounded-xl shadow-sm focus:outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 text-sm transition-all"
         />
         {search && (
@@ -318,7 +320,7 @@ export default function TreePage() {
             <div className="w-16 h-16 rounded-full border-4 border-indigo-100 border-t-indigo-500 animate-spin" />
             <Network className="w-6 h-6 text-indigo-500 absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
           </div>
-          <p className="mt-4 text-slate-500 font-medium">Building organization tree...</p>
+          <p className="mt-4 text-slate-500 font-medium">{t('tree.loadingMessage')}</p>
         </div>
       ) : error ? (
         <div className="glass-card py-16 text-center">
@@ -331,7 +333,7 @@ export default function TreePage() {
       ) : nodes.length === 0 ? (
         <div className="glass-card py-20 text-center">
           <Building2 className="w-12 h-12 text-slate-300 mx-auto mb-3" />
-          <p className="text-slate-500 font-medium">No department data available</p>
+          <p className="text-slate-500 font-medium">{t('tree.noData')}</p>
         </div>
       ) : viewMode === 'tree' ? (
         <div className="glass-card p-6">
@@ -340,17 +342,17 @@ export default function TreePage() {
             <div className="inline-flex items-center gap-3 px-6 py-3 bg-gradient-to-r from-indigo-600 to-purple-600 rounded-2xl shadow-lg shadow-indigo-500/25 text-white">
               <Network className="w-5 h-5" />
               <div>
-                <p className="font-bold text-sm">Meticura Central</p>
-                <p className="text-indigo-200 text-[10px]">{nodes.length} departments monitored</p>
+                <p className="font-bold text-sm">{t('tree.root.name')}</p>
+                <p className="text-indigo-200 text-[10px]">{t('tree.root.subtitle', { count: nodes.length })}</p>
               </div>
             </div>
           </div>
           {/* Vertical connector */}
           <div className="w-px h-6 bg-gradient-to-b from-indigo-300 to-slate-200 mx-auto" />
 
-          <TreeGroup title="Critical Departments" nodes={grouped.critical} statusKey="critical" count={grouped.critical.length} />
-          <TreeGroup title="Warning Departments" nodes={grouped.warning} statusKey="warning" count={grouped.warning.length} />
-          <TreeGroup title="Healthy Departments" nodes={grouped.healthy} statusKey="healthy" count={grouped.healthy.length} />
+          <TreeGroup title={t('tree.group.critical')} nodes={grouped.critical} statusKey="critical" count={grouped.critical.length} />
+          <TreeGroup title={t('tree.group.warning')} nodes={grouped.warning} statusKey="warning" count={grouped.warning.length} />
+          <TreeGroup title={t('tree.group.healthy')} nodes={grouped.healthy} statusKey="healthy" count={grouped.healthy.length} />
         </div>
       ) : (
         /* Grid view */
@@ -364,17 +366,17 @@ export default function TreePage() {
         <div className="fixed inset-0 bg-black/30 backdrop-blur-sm z-50 flex justify-end" onClick={() => setSelectedNode(null)}>
           <div className="w-full max-w-md bg-white shadow-2xl h-full overflow-y-auto animate-slide-in-right" onClick={e => e.stopPropagation()}>
             <div className={`p-6 bg-gradient-to-br ${STATUS_CONFIG[selectedNode.status].bar} text-white`}>
-              <button onClick={() => setSelectedNode(null)} className="mb-4 text-white/70 hover:text-white text-sm">&larr; Close</button>
+              <button onClick={() => setSelectedNode(null)} className="mb-4 text-white/70 hover:text-white text-sm">&larr; {t('tree.drawer.close')}</button>
               <h2 className="text-xl font-bold">{selectedNode.department_name}</h2>
               <p className="text-white/70 text-sm mt-1">Department #{selectedNode.department_id}</p>
             </div>
             <div className="p-6 space-y-4">
               <div className="grid grid-cols-2 gap-3">
                 {[
-                  { label: 'Status', value: selectedNode.status, capitalize: true },
-                  { label: 'Utilization', value: `${selectedNode.utilization.toFixed(1)}%` },
-                  { label: 'Lapse Risk', value: selectedNode.lapseRisk || 'low', capitalize: true },
-                  { label: 'Anomaly Score', value: selectedNode.anomalyScore?.toFixed(3) ?? 'N/A' },
+                  { label: t('tree.drawer.status'), value: selectedNode.status, capitalize: true },
+                  { label: t('tree.card.utilization'), value: `${selectedNode.utilization.toFixed(1)}%` },
+                  { label: t('tree.drawer.lapseRisk'), value: selectedNode.lapseRisk || 'low', capitalize: true },
+                  { label: t('tree.drawer.anomalyScore'), value: selectedNode.anomalyScore?.toFixed(3) ?? 'N/A' },
                 ].map(m => (
                   <div key={m.label} className="bg-slate-50 rounded-xl p-3">
                     <p className="text-[10px] text-slate-400 uppercase tracking-wider font-semibold">{m.label}</p>
@@ -384,13 +386,13 @@ export default function TreePage() {
               </div>
               {selectedNode.allocated != null && selectedNode.allocated > 0 && (
                 <div className="bg-slate-50 rounded-xl p-4">
-                  <p className="text-xs text-slate-400 font-semibold uppercase mb-2">Budget</p>
+                  <p className="text-xs text-slate-400 font-semibold uppercase mb-2">{t('tree.drawer.budget')}</p>
                   <div className="flex justify-between text-sm mb-2">
-                    <span className="text-slate-600">Allocated</span>
+                    <span className="text-slate-600">{t('tree.drawer.allocated')}</span>
                     <span className="font-bold text-slate-800">₹{fmt(selectedNode.allocated)}</span>
                   </div>
                   <div className="flex justify-between text-sm">
-                    <span className="text-slate-600">Spent</span>
+                    <span className="text-slate-600">{t('tree.drawer.spent')}</span>
                     <span className="font-bold text-slate-800">₹{fmt(selectedNode.spent || 0)}</span>
                   </div>
                 </div>
@@ -399,13 +401,13 @@ export default function TreePage() {
                 onClick={() => { setSelectedNode(null); navigate(`/budget/department/${selectedNode.department_id}`); }}
                 className="w-full py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
               >
-                <Eye className="w-4 h-4" /> View Full Details
+                <Eye className="w-4 h-4" /> {t('common.viewFullDetails')}
               </button>
               <button
                 onClick={() => { setSelectedNode(null); navigate(`/anomalies/department/${selectedNode.department_id}`); }}
                 className="w-full py-3 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl font-medium transition-colors flex items-center justify-center gap-2"
               >
-                <Zap className="w-4 h-4" /> View Anomalies
+                <Zap className="w-4 h-4" /> {t('common.viewAnomalies')}
               </button>
             </div>
           </div>
@@ -416,9 +418,9 @@ export default function TreePage() {
       <div className="flex items-center justify-between text-xs text-slate-400">
         <div className="flex items-center gap-2">
           <Network className="w-3.5 h-3.5" />
-          Budget utilization + anomaly signals + lapse risk
+          {t('tree.footer.description')}
         </div>
-        <span>{nodes.length} departments &bull; Last refreshed just now</span>
+        <span>{t('tree.footer.departments', { count: nodes.length })} &bull; {t('tree.footer.lastRefreshed')}</span>
       </div>
     </div>
   );

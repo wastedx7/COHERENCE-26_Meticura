@@ -1,10 +1,12 @@
 import React, { useEffect, useState, useCallback } from 'react';
 import { ShieldCheck, Map, Search, FileText, Download, TrendingUp, Building2, BarChart3, Loader2 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface DeptRow { id: number; name: string; allocated_amount: number; spent_amount: number; utilization_pct: number; status: string; }
 
 export default function CitizenPage() {
+    const { t } = useLanguage();
     const [query, setQuery] = useState('');
     const [results, setResults] = useState<DeptRow[]>([]);
     const [overview, setOverview] = useState<any>(null);
@@ -65,14 +67,14 @@ export default function CitizenPage() {
                         <div className="w-10 h-10 bg-indigo-600 rounded-xl flex items-center justify-center shadow-lg shadow-indigo-600/30">
                             <ShieldCheck className="w-6 h-6 text-white" />
                         </div>
-                        <h1 className="text-xl font-bold text-slate-800 tracking-tight">Coherent<span className="text-indigo-600">Citizen</span></h1>
+                        <h1 className="text-xl font-bold text-slate-800 tracking-tight">{t('citizen.brand')}<span className="text-indigo-600">{t('citizen.brandAccent')}</span></h1>
                     </div>
                 </header>
 
                 <div className="text-center max-w-3xl mx-auto mb-12">
-                    <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider rounded-full border border-indigo-100 mb-4">Public Transparency Portal</span>
-                    <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6">See how your tax money is distributed across the region</h2>
-                    <p className="text-lg text-slate-600 mb-8 leading-relaxed">Access real-time data on departmental budgets, resource reallocation, and AI-driven anomaly detection.</p>
+                    <span className="inline-block px-3 py-1 bg-indigo-50 text-indigo-700 text-xs font-bold uppercase tracking-wider rounded-full border border-indigo-100 mb-4">{t('citizen.badge')}</span>
+                    <h2 className="text-4xl md:text-5xl font-black text-slate-900 tracking-tight leading-tight mb-6">{t('citizen.headline')}</h2>
+                    <p className="text-lg text-slate-600 mb-8 leading-relaxed">{t('citizen.description')}</p>
 
                     <div className="relative max-w-xl mx-auto">
                         <Search className="w-5 h-5 absolute left-4 top-1/2 -translate-y-1/2 text-slate-400" />
@@ -81,11 +83,11 @@ export default function CitizenPage() {
                             value={query}
                             onChange={e => setQuery(e.target.value)}
                             onKeyDown={e => e.key === 'Enter' && doSearch()}
-                            placeholder="Search for a department by name or ID..."
+                            placeholder={t('citizen.search.placeholder')}
                             className="w-full pl-12 pr-28 py-4 bg-white/80 backdrop-blur border border-slate-200 rounded-xl shadow-lg focus:outline-none focus:ring-2 focus:ring-indigo-500 text-lg"
                         />
                         <button onClick={doSearch} disabled={searching} className="absolute right-2 top-1/2 -translate-y-1/2 px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg text-sm font-medium transition-colors">
-                            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : 'Search'}
+                            {searching ? <Loader2 className="w-4 h-4 animate-spin" /> : t('citizen.search.button')}
                         </button>
                     </div>
                 </div>
@@ -94,7 +96,7 @@ export default function CitizenPage() {
                 {results.length > 0 && (
                     <div className="mb-12 glass-card overflow-hidden">
                         <div className="p-4 border-b border-slate-100 bg-white/60 backdrop-blur">
-                            <h3 className="font-bold text-slate-800">Search Results ({results.length})</h3>
+                            <h3 className="font-bold text-slate-800">{t('citizen.search.resultsTitle', { count: results.length })}</h3>
                         </div>
                         <div className="divide-y divide-slate-100 max-h-80 overflow-y-auto">
                             {results.map(d => (
@@ -117,10 +119,10 @@ export default function CitizenPage() {
                 {overview && (
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-12">
                         {[
-                            { label: 'Total Allocated', value: fmt(overview.total_allocated), icon: BarChart3, color: 'text-indigo-600 bg-indigo-50' },
-                            { label: 'Total Spent', value: fmt(overview.total_spent), icon: TrendingUp, color: 'text-emerald-600 bg-emerald-50' },
-                            { label: 'Avg Utilization', value: `${overview.avg_utilization.toFixed(1)}%`, icon: Map, color: 'text-amber-600 bg-amber-50' },
-                            { label: 'Departments', value: overview.dept_count, icon: Building2, color: 'text-blue-600 bg-blue-50' },
+                            { label: t('citizen.overview.totalAllocated'), value: fmt(overview.total_allocated), icon: BarChart3, color: 'text-indigo-600 bg-indigo-50' },
+                            { label: t('citizen.overview.totalSpent'), value: fmt(overview.total_spent), icon: TrendingUp, color: 'text-emerald-600 bg-emerald-50' },
+                            { label: t('citizen.overview.avgUtilization'), value: `${overview.avg_utilization.toFixed(1)}%`, icon: Map, color: 'text-amber-600 bg-amber-50' },
+                            { label: t('citizen.overview.departments'), value: overview.dept_count, icon: Building2, color: 'text-blue-600 bg-blue-50' },
                         ].map(s => (
                             <div key={s.label} className="glass-card p-5 flex items-center gap-4">
                                 <div className={`w-12 h-12 rounded-xl flex items-center justify-center ${s.color}`}>
@@ -141,17 +143,17 @@ export default function CitizenPage() {
                         <div className="w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center mb-6 border border-emerald-100 group-hover:scale-110 transition-transform">
                             <FileText className="w-7 h-7 text-emerald-600" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">Published Reports</h3>
-                        <p className="text-slate-600 leading-relaxed mb-4">Download CSV/PDF statements of budgets and anomaly detections.</p>
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">{t('citizen.feature.reports.title')}</h3>
+                        <p className="text-slate-600 leading-relaxed mb-4">{t('citizen.feature.reports.description')}</p>
                         <div className="space-y-2">
                             <a href="/api/export/budgets.csv" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                                <Download className="w-4 h-4" /> Budgets CSV
+                                <Download className="w-4 h-4" /> {t('citizen.feature.reports.budgetsCsv')}
                             </a>
                             <a href="/api/export/anomalies.csv" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                                <Download className="w-4 h-4" /> Anomalies CSV
+                                <Download className="w-4 h-4" /> {t('citizen.feature.reports.anomaliesCsv')}
                             </a>
                             <a href="/api/export/anomalies.pdf" target="_blank" rel="noreferrer" className="flex items-center gap-2 text-sm text-indigo-600 hover:text-indigo-800 font-medium">
-                                <Download className="w-4 h-4" /> Anomalies PDF
+                                <Download className="w-4 h-4" /> {t('citizen.feature.reports.anomaliesPdf')}
                             </a>
                         </div>
                     </div>
@@ -160,16 +162,16 @@ export default function CitizenPage() {
                         <div className="w-14 h-14 rounded-2xl bg-blue-50 flex items-center justify-center mb-6 border border-blue-100 group-hover:scale-110 transition-transform">
                             <Map className="w-7 h-7 text-blue-600" />
                         </div>
-                        <h3 className="text-xl font-bold text-slate-800 mb-2">Budget Explorer</h3>
-                        <p className="text-slate-600 leading-relaxed">Use the search bar above to explore how each department is spending its allocated funds and view utilization status.</p>
+                        <h3 className="text-xl font-bold text-slate-800 mb-2">{t('citizen.feature.explorer.title')}</h3>
+                        <p className="text-slate-600 leading-relaxed">{t('citizen.feature.explorer.description')}</p>
                     </div>
 
                     <div className="glass-panel p-8 bg-indigo-600 hover:bg-indigo-700 transition-colors group border-none shadow-xl shadow-indigo-600/20">
                         <div className="w-14 h-14 rounded-2xl bg-white/20 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
                             <ShieldCheck className="w-7 h-7 text-white" />
                         </div>
-                        <h3 className="text-xl font-bold text-white mb-2">AI Integrity</h3>
-                        <p className="text-indigo-100 leading-relaxed">Our 6-model ensemble pipeline (Isolation Forest, LOF, OCSVM, Autoencoder, DBSCAN, Elliptic Envelope) detects anomalous spending in real-time.</p>
+                        <h3 className="text-xl font-bold text-white mb-2">{t('citizen.feature.integrity.title')}</h3>
+                        <p className="text-indigo-100 leading-relaxed">{t('citizen.feature.integrity.description')}</p>
                     </div>
                 </div>
             </div>

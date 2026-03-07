@@ -3,6 +3,7 @@ import { BrainCircuit, Cpu, Zap, Beaker, Network, Loader2, CheckCircle2, Refresh
 import { LineChart, Line, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Legend } from 'recharts';
 import { api } from '../../lib/api';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 
 interface ModelMetric {
     model_name: string;
@@ -42,6 +43,7 @@ const MODEL_LABELS: Record<string, { label: string; type: string; task: string }
 
 export default function MyModelsPage() {
     const { role } = useAuth();
+    const { t } = useLanguage();
     const [metrics, setMetrics] = useState<ModelMetric[]>([]);
     const [activeModel, setActiveModel] = useState<ActiveModel | null>(null);
     const [isLoading, setIsLoading] = useState(true);
@@ -113,8 +115,8 @@ export default function MyModelsPage() {
         <div className="animate-fade-in pb-12">
             <div className="mb-6 flex items-center justify-between">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">AI Model Registry</h1>
-                    <p className="text-slate-500 mt-1">Monitor, compare, and manage the ensemble ML models</p>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t('models.title')}</h1>
+                    <p className="text-slate-500 mt-1">{t('models.subtitle')}</p>
                 </div>
                 <button onClick={fetchData} className="p-2 glass-card hover:bg-slate-50 rounded-lg transition-colors text-slate-500 hover:text-indigo-600">
                     <RefreshCw className="w-5 h-5" />
@@ -124,7 +126,7 @@ export default function MyModelsPage() {
             <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 mb-8">
                 {/* Chart */}
                 <div className="glass-card p-6 lg:col-span-2">
-                    <h3 className="text-lg font-bold text-slate-800 mb-6">Model Performance (F1 / Precision / Recall %)</h3>
+                    <h3 className="text-lg font-bold text-slate-800 mb-6">{t('models.chart.title')}</h3>
                     <div className="h-64 w-full">
                         {chartData.length > 0 ? (
                             <ResponsiveContainer width="100%" height="100%">
@@ -140,7 +142,7 @@ export default function MyModelsPage() {
                                 </LineChart>
                             </ResponsiveContainer>
                         ) : (
-                            <div className="h-full flex items-center justify-center text-slate-500">No metric data available</div>
+                            <div className="h-full flex items-center justify-center text-slate-500">{t('models.chart.noData')}</div>
                         )}
                     </div>
                 </div>
@@ -150,7 +152,7 @@ export default function MyModelsPage() {
                     <div className="w-24 h-24 rounded-full bg-indigo-50 border-8 border-indigo-100 flex items-center justify-center mb-4">
                         <span className="text-2xl font-black text-indigo-600">{avgScore}%</span>
                     </div>
-                    <h3 className="text-lg font-bold text-slate-800">Average F1 Score</h3>
+                    <h3 className="text-lg font-bold text-slate-800">{t('models.summary.avgF1')}</h3>
                     <p className="text-sm text-slate-500 mt-2">
                         {activeModel ? `Active: ${MODEL_LABELS[activeModel.model_name]?.label || activeModel.model_name}` : 'No active model set'}
                     </p>
@@ -158,7 +160,7 @@ export default function MyModelsPage() {
                         <button onClick={handleRetrain} disabled={retrainLoading}
                             className="mt-6 px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 text-white rounded-lg shadow-sm font-medium transition-colors w-full flex items-center justify-center gap-2">
                             {retrainLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
-                            Trigger Batch Retrain
+                            {t('models.retrain.button')}
                         </button>
                     )}
                     {retrainMsg && <p className="text-sm mt-2 text-slate-600">{retrainMsg}</p>}
@@ -184,11 +186,11 @@ export default function MyModelsPage() {
                                 <div className="flex items-center gap-2">
                                     {isActive && (
                                         <span className="px-2 py-0.5 bg-indigo-100 text-indigo-700 text-xs font-bold rounded-full flex items-center gap-1">
-                                            <Crown className="w-3 h-3" /> Active
+                                            <Crown className="w-3 h-3" /> {t('models.card.active')}
                                         </span>
                                     )}
                                     <span className="px-2.5 py-1 bg-emerald-100 text-emerald-700 text-xs font-bold uppercase rounded-full border border-emerald-200">
-                                        Ready
+                                        {t('models.card.statusReady')}
                                     </span>
                                 </div>
                             </div>
@@ -220,7 +222,7 @@ export default function MyModelsPage() {
                                     <button onClick={() => handleSetActive(m.model_name)} disabled={setActiveLoading === m.model_name}
                                         className="text-xs font-medium text-indigo-600 hover:text-indigo-800 flex items-center gap-1">
                                         {setActiveLoading === m.model_name ? <Loader2 className="w-3 h-3 animate-spin" /> : <CheckCircle2 className="w-3 h-3" />}
-                                        Set Active
+                                        {t('models.card.setActive')}
                                     </button>
                                 )}
                             </div>

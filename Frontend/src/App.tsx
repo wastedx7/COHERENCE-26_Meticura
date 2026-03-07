@@ -4,6 +4,7 @@ import LandingPage from './landing/page';
 
 // Layout & Contexts
 import { AuthProvider, useAuth } from './context/AuthContext';
+import { LanguageProvider } from './context/LanguageContext';
 import AppShell from './components/layout/AppShell';
 
 // Pages
@@ -85,6 +86,7 @@ const DataProviders = ({ children }: { children: React.ReactNode }) => {
 
 export default function App() {
   return (
+    <LanguageProvider>
     <AuthProvider>
       <Routes>
         {/* Public Landing Page */}
@@ -153,5 +155,6 @@ export default function App() {
         </div>} />
       </Routes>
     </AuthProvider>
+    </LanguageProvider>
   );
 }

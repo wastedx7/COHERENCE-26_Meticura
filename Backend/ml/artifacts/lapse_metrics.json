@@ -1,0 +1,13 @@
+{
+  "total_departments": 500,
+  "avg_predicted_lapse_day": 365.0,
+  "median_predicted_lapse_day": 365.0,
+  "min_lapse_day": 365,
+  "max_lapse_day": 365,
+  "std_lapse_days": 0.0,
+  "avg_r2_score": 0.7754242796800983,
+  "high_confidence_models": 307,
+  "medium_confidence_models": 113,
+  "low_confidence_models": 80,
+  "timestamp": "2026-03-07T10:01:50.685960"
+}

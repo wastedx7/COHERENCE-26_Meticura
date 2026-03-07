@@ -1,6 +1,7 @@
 import React, { useState, useMemo } from 'react';
 import { Outlet, NavLink, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import { useLanguage } from '../../context/LanguageContext';
 import {
     BarChart3,
     AlertTriangle,
@@ -17,29 +18,32 @@ import {
     ChevronRight,
     User,
     ShieldAlert,
-    Sparkles
+    Sparkles,
+    Globe
 } from 'lucide-react';
 
 type NavSection = { label: string; links: { name: string; path: string; icon: React.ReactNode }[] };
 
 export default function AppShell() {
     const { role, user, logout } = useAuth();
+    const { t, language, setLanguage, languages: langList } = useLanguage();
     const navigate = useNavigate();
     const location = useLocation();
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [showLogoutConfirm, setShowLogoutConfirm] = useState(false);
+    const [showLangMenu, setShowLangMenu] = useState(false);
 
     const handleLogout = () => { logout(); navigate('/login', { replace: true }); };
 
     const sections: NavSection[] = useMemo(() => {
         const core = {
-            label: 'Core',
+            label: t('nav.section.core'),
             links: [
-                { name: 'Dashboard', path: '/dashboard', icon: <BarChart3 className="w-5 h-5" /> },
-                { name: 'Budget', path: '/budget', icon: <Activity className="w-5 h-5" /> },
-                { name: 'Anomalies', path: '/anomalies', icon: <AlertTriangle className="w-5 h-5" /> },
-                { name: 'Lapse Risk', path: '/lapse', icon: <TrendingDown className="w-5 h-5" /> },
-                { name: 'Tree View', path: '/tree', icon: <Network className="w-5 h-5" /> },
+                { name: t('nav.link.dashboard'), path: '/dashboard', icon: <BarChart3 className="w-5 h-5" /> },
+                { name: t('nav.link.budget'), path: '/budget', icon: <Activity className="w-5 h-5" /> },
+                { name: t('nav.link.anomalies'), path: '/anomalies', icon: <AlertTriangle className="w-5 h-5" /> },
+                { name: t('nav.link.lapseRisk'), path: '/lapse', icon: <TrendingDown className="w-5 h-5" /> },
+                { name: t('nav.link.treeView'), path: '/tree', icon: <Network className="w-5 h-5" /> },
             ],
         };
 
@@ -47,19 +51,19 @@ export default function AppShell() {
             return [
                 core,
                 {
-                    label: 'Management',
+                    label: t('nav.section.management'),
                     links: [
-                        { name: 'Reallocation', path: '/reallocation', icon: <ArrowRightLeft className="w-5 h-5" /> },
-                        { name: 'Reports', path: '/reports', icon: <FileText className="w-5 h-5" /> },
-                        { name: 'Users', path: '/users', icon: <Users className="w-5 h-5" /> },
-                        { name: 'Transactions', path: '/transactions', icon: <FileText className="w-5 h-5" /> },
+                        { name: t('nav.link.reallocation'), path: '/reallocation', icon: <ArrowRightLeft className="w-5 h-5" /> },
+                        { name: t('nav.link.reports'), path: '/reports', icon: <FileText className="w-5 h-5" /> },
+                        { name: t('nav.link.users'), path: '/users', icon: <Users className="w-5 h-5" /> },
+                        { name: t('nav.link.transactions'), path: '/transactions', icon: <FileText className="w-5 h-5" /> },
                     ],
                 },
                 {
-                    label: 'System',
+                    label: t('nav.section.system'),
                     links: [
-                        { name: 'Engine', path: '/engine', icon: <Settings className="w-5 h-5" /> },
-                        { name: 'My Models', path: '/my-models', icon: <Database className="w-5 h-5" /> },
+                        { name: t('nav.link.engine'), path: '/engine', icon: <Settings className="w-5 h-5" /> },
+                        { name: t('nav.link.myModels'), path: '/my-models', icon: <Database className="w-5 h-5" /> },
                     ],
                 },
             ];
@@ -69,12 +73,12 @@ export default function AppShell() {
             return [
                 core,
                 {
-                    label: 'Management',
+                    label: t('nav.section.management'),
                     links: [
-                        { name: 'Reallocation', path: '/reallocation', icon: <ArrowRightLeft className="w-5 h-5" /> },
-                        { name: 'Reports', path: '/reports', icon: <FileText className="w-5 h-5" /> },
-                        { name: 'Transactions', path: '/transactions', icon: <FileText className="w-5 h-5" /> },
-                        { name: 'My Models', path: '/my-models', icon: <Database className="w-5 h-5" /> },
+                        { name: t('nav.link.reallocation'), path: '/reallocation', icon: <ArrowRightLeft className="w-5 h-5" /> },
+                        { name: t('nav.link.reports'), path: '/reports', icon: <FileText className="w-5 h-5" /> },
+                        { name: t('nav.link.transactions'), path: '/transactions', icon: <FileText className="w-5 h-5" /> },
+                        { name: t('nav.link.myModels'), path: '/my-models', icon: <Database className="w-5 h-5" /> },
                     ],
                 },
             ];
@@ -84,17 +88,17 @@ export default function AppShell() {
             return [
                 core,
                 {
-                    label: 'Tools',
+                    label: t('nav.section.tools'),
                     links: [
-                        { name: 'Reports', path: '/reports', icon: <FileText className="w-5 h-5" /> },
-                        { name: 'My Models', path: '/my-models', icon: <Database className="w-5 h-5" /> },
+                        { name: t('nav.link.reports'), path: '/reports', icon: <FileText className="w-5 h-5" /> },
+                        { name: t('nav.link.myModels'), path: '/my-models', icon: <Database className="w-5 h-5" /> },
                     ],
                 },
             ];
         }
 
         return [core];
-    }, [role]);
+    }, [role, language]);
 
     // Current page title for breadcrumb
     const pageTitle = useMemo(() => {
@@ -124,8 +128,8 @@ export default function AppShell() {
                                 <ShieldAlert className="w-5 h-5 text-white" />
                             </div>
                             <div>
-                                <span className="font-black text-lg text-slate-800 tracking-tight block leading-none">Meticura</span>
-                                <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-widest">Budget Guard</span>
+                                <span className="font-black text-lg text-slate-800 tracking-tight block leading-none">{t('nav.brand.name')}</span>
+                                <span className="text-[10px] font-semibold text-indigo-500 uppercase tracking-widest">{t('nav.brand.tagline')}</span>
                             </div>
                         </div>
                     ) : (
@@ -194,7 +198,7 @@ export default function AppShell() {
                         </div>
                         {!isCollapsed && (
                             <div className="ml-3 flex-1 overflow-hidden">
-                                <p className="text-sm font-bold text-slate-800 truncate leading-tight">{user?.full_name || 'Admin User'}</p>
+                                <p className="text-sm font-bold text-slate-800 truncate leading-tight">{user?.full_name || t('nav.user.fallbackName')}</p>
                                 <span className={`inline-block mt-1 px-1.5 py-0.5 text-[10px] font-bold uppercase tracking-wider rounded border ${ROLE_COLORS[role || 'viewer']}`}>
                                     {role || 'viewer'}
                                 </span>
@@ -218,20 +222,20 @@ export default function AppShell() {
                                 <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center mx-auto mb-4">
                                     <LogOut className="w-6 h-6 text-red-600" />
                                 </div>
-                                <h3 className="text-lg font-bold text-slate-900 text-center mb-1">Sign Out?</h3>
-                                <p className="text-slate-500 text-center text-sm mb-6">You'll need to sign in again to access the dashboard.</p>
+                                <h3 className="text-lg font-bold text-slate-900 text-center mb-1">{t('nav.logout.title')}</h3>
+                                <p className="text-slate-500 text-center text-sm mb-6">{t('nav.logout.description')}</p>
                                 <div className="flex gap-3">
                                     <button
                                         onClick={() => setShowLogoutConfirm(false)}
                                         className="flex-1 px-4 py-2.5 rounded-xl border border-slate-200 text-slate-700 font-medium hover:bg-slate-50 transition-colors"
                                     >
-                                        Cancel
+                                        {t('nav.logout.cancel')}
                                     </button>
                                     <button
                                         onClick={handleLogout}
                                         className="flex-1 px-4 py-2.5 rounded-xl bg-gradient-to-r from-red-600 to-red-500 text-white font-medium hover:from-red-700 hover:to-red-600 transition-all shadow-md shadow-red-500/25"
                                     >
-                                        Sign Out
+                                        {t('nav.logout.confirm')}
                                     </button>
                                 </div>
                             </div>
@@ -253,9 +257,37 @@ export default function AppShell() {
                         )}
                     </div>
                     <div className="flex items-center gap-3">
+                        {/* Language Switcher */}
+                        <div className="relative">
+                            <button
+                                onClick={() => setShowLangMenu(!showLangMenu)}
+                                className="glass-card px-3 py-1.5 flex items-center gap-2 rounded-full hover:shadow-md transition-all"
+                            >
+                                <Globe className="w-3.5 h-3.5 text-indigo-500" />
+                                <span className="text-xs font-semibold text-slate-600">{langList.find(l => l.code === language)?.nativeName}</span>
+                            </button>
+                            {showLangMenu && (
+                                <>
+                                    <div className="fixed inset-0 z-40" onClick={() => setShowLangMenu(false)} />
+                                    <div className="absolute right-0 top-full mt-2 z-50 bg-white rounded-xl shadow-2xl border border-slate-100 py-2 min-w-[180px] max-h-72 overflow-y-auto">
+                                        <p className="px-3 py-1 text-[10px] font-bold text-slate-400 uppercase tracking-widest">{t('nav.language')}</p>
+                                        {langList.map(l => (
+                                            <button
+                                                key={l.code}
+                                                onClick={() => { setLanguage(l.code); setShowLangMenu(false); }}
+                                                className={`w-full text-left px-3 py-2 text-sm flex items-center justify-between hover:bg-indigo-50 transition-colors ${language === l.code ? 'bg-indigo-50 text-indigo-700 font-semibold' : 'text-slate-700'}`}
+                                            >
+                                                <span>{l.nativeName}</span>
+                                                <span className="text-[10px] text-slate-400">{l.name}</span>
+                                            </button>
+                                        ))}
+                                    </div>
+                                </>
+                            )}
+                        </div>
                         <div className="glass-card px-3.5 py-1.5 flex items-center gap-2 rounded-full">
                             <span className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                            <span className="text-xs font-semibold text-slate-600">Online</span>
+                            <span className="text-xs font-semibold text-slate-600">{t('nav.status.online')}</span>
                         </div>
                     </div>
                 </header>

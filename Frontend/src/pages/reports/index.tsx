@@ -5,6 +5,7 @@ import {
   BarChart3, TrendingUp, Calendar, Sparkles
 } from 'lucide-react';
 import { api } from '../../lib/api';
+import { useLanguage } from '../../context/LanguageContext';
 
 type ReportType = 'anomalies' | 'lapse' | 'budget' | 'reallocation';
 type DepartmentOption = { id: number; name: string };
@@ -28,6 +29,7 @@ const downloadBlob = (blob: Blob, filename: string) => {
 };
 
 export default function ReportsPage() {
+  const { t } = useLanguage();
   const [reportType, setReportType] = useState<ReportType>('anomalies');
   const [departmentId, setDepartmentId] = useState<string>('');
   const [severity, setSeverity] = useState<string>('');
@@ -90,7 +92,7 @@ export default function ReportsPage() {
       }
       setMessage('Report downloaded successfully.');
       setMessageType('success');
-      setDownloadHistory(prev => [{ type: activeCard.label, format: format.toUpperCase(), time: new Date().toLocaleTimeString() }, ...prev.slice(0, 4)]);
+      setDownloadHistory(prev => [{ type: t(`reports.card.${reportType}.label`), format: format.toUpperCase(), time: new Date().toLocaleTimeString() }, ...prev.slice(0, 4)]);
     } catch (err: any) {
       setMessage(err?.response?.data?.detail || err?.message || 'Failed to download report');
       setMessageType('error');
@@ -107,8 +109,8 @@ export default function ReportsPage() {
           <FileText className="w-6 h-6 text-white" />
         </div>
         <div>
-          <h1 className="text-3xl font-black text-slate-900 tracking-tight">Report Generator</h1>
-          <p className="text-slate-500 text-sm">Export structured financial intelligence using live backend data</p>
+          <h1 className="text-3xl font-black text-slate-900 tracking-tight">{t('reports.title')}</h1>
+          <p className="text-slate-500 text-sm">{t('reports.subtitle')}</p>
         </div>
       </div>
 
@@ -143,8 +145,8 @@ export default function ReportsPage() {
                 } transition-colors`}>
                   <rc.icon className={`w-5 h-5 ${isActive ? 'text-white' : 'text-slate-500'}`} />
                 </div>
-                <h3 className={`font-bold text-sm ${isActive ? rc.lightText : 'text-slate-800'}`}>{rc.label}</h3>
-                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{rc.desc}</p>
+                <h3 className={`font-bold text-sm ${isActive ? rc.lightText : 'text-slate-800'}`}>{t(`reports.card.${rc.id}.label`)}</h3>
+                <p className="text-[11px] text-slate-500 mt-1 leading-relaxed">{t(`reports.card.${rc.id}.desc`)}</p>
               </div>
               {isActive && <div className={`absolute bottom-0 left-0 right-0 h-1 bg-gradient-to-r ${rc.color}`} />}
             </button>
@@ -157,41 +159,41 @@ export default function ReportsPage() {
         {/* Filter panel */}
         <div className="glass-card p-6 flex flex-col gap-5">
           <div className="flex items-center gap-2 text-sm font-bold text-slate-500 uppercase tracking-wider">
-            <Filter className="w-4 h-4" /> Filters
+            <Filter className="w-4 h-4" /> {t('reports.filters.title')}
           </div>
 
           <div>
-            <label className="block text-sm font-semibold text-slate-700 mb-1.5">Department</label>
+            <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t('reports.filters.department')}</label>
             <select value={departmentId} onChange={e => setDepartmentId(e.target.value)}
               className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 transition-all">
-              <option value="">All Departments</option>
+              <option value="">{t('reports.filters.department.all')}</option>
               {departments.map(d => <option key={d.id} value={d.id}>{d.name} ({d.id})</option>)}
             </select>
           </div>
 
           {reportType === 'anomalies' && (
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Severity</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t('reports.filters.severity')}</label>
               <select value={severity} onChange={e => setSeverity(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 transition-all">
-                <option value="">All Severities</option>
+                <option value="">{t('reports.filters.severity.all')}</option>
                 {['low', 'medium', 'high', 'critical'].map(s => <option key={s} value={s} className="capitalize">{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
               </select>
             </div>
           )}
           {reportType === 'lapse' && (
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Risk Level</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t('reports.filters.riskLevel')}</label>
               <select value={riskLevel} onChange={e => setRiskLevel(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 transition-all">
-                <option value="">All Risk Levels</option>
+                <option value="">{t('reports.filters.riskLevel.all')}</option>
                 {['low', 'medium', 'high', 'critical', 'depleted'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
               </select>
             </div>
           )}
           {reportType === 'reallocation' && (
             <div>
-              <label className="block text-sm font-semibold text-slate-700 mb-1.5">Transfer Status</label>
+              <label className="block text-sm font-semibold text-slate-700 mb-1.5">{t('reports.filters.transferStatus')}</label>
               <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
                 className="w-full bg-white border border-slate-200 rounded-xl p-2.5 text-sm outline-none focus:ring-2 focus:ring-indigo-500/30 focus:border-indigo-300 transition-all">
                 {['pending', 'approved', 'rejected', 'executed'].map(s => <option key={s} value={s}>{s.charAt(0).toUpperCase() + s.slice(1)}</option>)}
@@ -204,12 +206,12 @@ export default function ReportsPage() {
             <button disabled={isLoading || !canDownloadPdf} onClick={() => handleDownload('pdf')}
               className="w-full flex items-center justify-center gap-2.5 px-4 py-3 bg-gradient-to-r from-slate-800 to-slate-900 hover:from-black hover:to-slate-900 text-white rounded-xl shadow-lg shadow-slate-900/20 font-semibold transition-all disabled:opacity-40 disabled:shadow-none text-sm">
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Download className="w-4 h-4" />}
-              Download PDF
+              {t('reports.download.pdf')}
             </button>
             <button disabled={isLoading} onClick={() => handleDownload('csv')}
               className="w-full flex items-center justify-center gap-2.5 px-4 py-3 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl shadow-sm font-semibold transition-all disabled:opacity-40 text-sm">
               {isLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <FileText className="w-4 h-4" />}
-              Export CSV
+              {t('reports.download.csv')}
             </button>
           </div>
         </div>
@@ -224,14 +226,14 @@ export default function ReportsPage() {
                 <activeCard.icon className="w-7 h-7 text-white" />
               </div>
               <div>
-                <h2 className={`text-xl font-bold ${activeCard.lightText}`}>{activeCard.label}</h2>
-                <p className="text-slate-600 text-sm mt-1">{activeCard.desc}</p>
+                <h2 className={`text-xl font-bold ${activeCard.lightText}`}>{t(`reports.card.${activeCard.id}.label`)}</h2>
+                <p className="text-slate-600 text-sm mt-1">{t(`reports.card.${activeCard.id}.desc`)}</p>
                 <div className="flex flex-wrap gap-2 mt-3">
                   <span className="inline-flex items-center gap-1 text-[10px] font-bold bg-white/60 border border-white/80 px-2 py-0.5 rounded-full text-slate-600">
-                    <Sparkles className="w-3 h-3" /> Live Data
+                    <Sparkles className="w-3 h-3" /> {t('common.liveData')}
                   </span>
-                  {canDownloadPdf && <span className="text-[10px] font-bold bg-white/60 border border-white/80 px-2 py-0.5 rounded-full text-slate-600">PDF + CSV</span>}
-                  {!canDownloadPdf && <span className="text-[10px] font-bold bg-white/60 border border-white/80 px-2 py-0.5 rounded-full text-slate-600">CSV Only</span>}
+                  {canDownloadPdf && <span className="text-[10px] font-bold bg-white/60 border border-white/80 px-2 py-0.5 rounded-full text-slate-600">{t('common.pdfCsv')}</span>}
+                  {!canDownloadPdf && <span className="text-[10px] font-bold bg-white/60 border border-white/80 px-2 py-0.5 rounded-full text-slate-600">{t('common.csvOnly')}</span>}
                 </div>
               </div>
             </div>
@@ -244,9 +246,9 @@ export default function ReportsPage() {
               <div className="w-20 h-20 rounded-2xl bg-slate-100 flex items-center justify-center mx-auto mb-4">
                 <FileBox className="w-10 h-10 text-slate-300" />
               </div>
-              <p className="font-bold text-slate-600 text-lg">Live Export Mode</p>
+              <p className="font-bold text-slate-600 text-lg">{t('reports.preview.title')}</p>
               <p className="text-sm text-slate-400 max-w-md mt-2">
-                Choose a report type and apply filters, then download as PDF or CSV. Data is fetched directly from the backend.
+                {t('reports.preview.description')}
               </p>
             </div>
           </div>
@@ -255,7 +257,7 @@ export default function ReportsPage() {
           {downloadHistory.length > 0 && (
             <div className="glass-card p-4">
               <h4 className="text-xs font-bold text-slate-400 uppercase tracking-wider mb-3 flex items-center gap-2">
-                <Calendar className="w-3.5 h-3.5" /> Recent Downloads
+                <Calendar className="w-3.5 h-3.5" /> {t('reports.history.title')}
               </h4>
               <div className="space-y-2">
                 {downloadHistory.map((h, i) => (

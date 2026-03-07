@@ -19,6 +19,7 @@ import {
     ResponsiveContainer
 } from 'recharts';
 import { Link } from 'react-router-dom';
+import { useLanguage } from '../../context/LanguageContext';
 
 const KPICard = ({ title, value, icon, trend, alert = false, isLoading = false }: any) => (
     <div className={`glass-card p-6 flex flex-col justify-between relative overflow-hidden group ${alert ? 'border-red-200 shadow-red-100' : ''}`}>
@@ -48,6 +49,7 @@ const KPICard = ({ title, value, icon, trend, alert = false, isLoading = false }
 
 export default function DashboardPage() {
     const { user } = useAuth();
+    const { t } = useLanguage();
     const { fetchDashboardData, budgetOverview, criticalAnomalies, lapseSummary, isLoading } = useDashboard();
 
     useEffect(() => {
@@ -80,40 +82,40 @@ export default function DashboardPage() {
         <div className="flex flex-col gap-6 animate-fade-in">
             <div className="flex justify-between items-end mb-2">
                 <div>
-                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">Overview Dashboard</h1>
-                    <p className="text-slate-500 mt-1">Welcome back, {user?.full_name || 'Admin'}. Here's what's happening.</p>
+                    <h1 className="text-3xl font-bold text-slate-900 tracking-tight">{t('dashboard.title')}</h1>
+                    <p className="text-slate-500 mt-1">{t('dashboard.subtitle', { name: user?.full_name || 'Admin' })}</p>
                 </div>
                 <Link 
                     to="/reports"
                     className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-sm font-medium transition-all hover:shadow-md transform hover:-translate-y-0.5"
                 >
-                    Generate Full Report
+                    {t('dashboard.generateReport')}
                 </Link>
             </div>
 
             {/* KPI Row */}
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
                 <KPICard
-                    title="Total Allocated Budget"
+                    title={t('dashboard.kpi.totalAllocated')}
                     value={budgetVal}
                     icon={<Activity className="w-6 h-6" />}
                     isLoading={isLoading}
                 />
                 <KPICard
-                    title="Total Spend YTD"
+                    title={t('dashboard.kpi.totalSpend')}
                     value={spentVal}
                     icon={<TrendingUp className="w-6 h-6" />}
                     isLoading={isLoading}
                 />
                 <KPICard
-                    title="Critical Anomalies"
+                    title={t('dashboard.kpi.criticalAnomalies')}
                     value={anomalyCount.toString()}
                     icon={<AlertTriangle className="w-6 h-6" />}
                     alert={anomalyCount > 0}
                     isLoading={isLoading}
                 />
                 <KPICard
-                    title="High Lapse Risk Depts"
+                    title={t('dashboard.kpi.highLapseRisk')}
                     value={lapseRisk.toString()}
                     icon={<ShieldCheck className="w-6 h-6" />}
                     isLoading={isLoading}
@@ -124,7 +126,7 @@ export default function DashboardPage() {
                 {/* Chart Section */}
                 <div className="glass-card p-6 lg:col-span-2 flex flex-col">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-lg font-bold text-slate-800">Budget Overview</h2>
+                        <h2 className="text-lg font-bold text-slate-800">{t('dashboard.chart.title')}</h2>
                     </div>
                     <div className="flex-1 w-full min-h-[300px]">
                         {isLoading ? (
@@ -147,7 +149,7 @@ export default function DashboardPage() {
                             </ResponsiveContainer>
                         ) : (
                             <div className="h-full flex items-center justify-center text-slate-500">
-                                <p>No budget data available</p>
+                                <p>{t('dashboard.chart.noData')}</p>
                             </div>
                         )}
                     </div>
@@ -156,9 +158,9 @@ export default function DashboardPage() {
                 {/* Action / Alerts Feed */}
                 <div className="glass-card p-6 flex flex-col h-full bg-gradient-to-b from-white/60 to-slate-50/20">
                     <div className="flex justify-between items-center mb-6">
-                        <h2 className="text-lg font-bold text-slate-800">Requires Attention</h2>
+                        <h2 className="text-lg font-bold text-slate-800">{t('dashboard.attention.title')}</h2>
                         <Link to="/anomalies" className="text-indigo-600 hover:text-indigo-700 text-sm font-medium flex items-center gap-1 transition-colors">
-                            View all <ArrowRight className="w-4 h-4" />
+                            {t('common.viewAll')} <ArrowRight className="w-4 h-4" />
                         </Link>
                     </div>
                     <div className="flex-1 flex flex-col gap-4 overflow-y-auto pr-2 custom-scrollbar">
@@ -172,10 +174,10 @@ export default function DashboardPage() {
                                     <div className="w-2 h-2 rounded-full bg-red-500 mt-2 flex-shrink-0"></div>
                                     <div>
                                         <p className="text-sm font-semibold text-slate-800 line-clamp-1">
-                                            {anomaly.type || 'Anomaly Detected'}
+                                            {anomaly.type || t('dashboard.attention.anomalyDetected')}
                                         </p>
                                         <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                                            {anomaly.message || `Department ${anomaly.department_id} flagged`} - {anomaly.rule || 'ML Detection'}
+                                            {anomaly.message || t('dashboard.attention.deptFlagged', { id: anomaly.department_id })} - {anomaly.rule || t('dashboard.attention.mlDetection')}
                                         </p>
                                     </div>
                                 </div>
@@ -184,7 +186,7 @@ export default function DashboardPage() {
                             <div className="flex items-center justify-center h-full text-slate-500">
                                 <div className="text-center">
                                     <ShieldCheck className="w-12 h-12 mx-auto mb-2 text-emerald-500" />
-                                    <p className="text-sm">No critical anomalies</p>
+                                    <p className="text-sm">{t('dashboard.attention.noAnomalies')}</p>
                                 </div>
                             </div>
                         )}
@@ -194,9 +196,9 @@ export default function DashboardPage() {
                             <Link to="/lapse" className="bg-amber-50/60 border border-amber-100 rounded-xl p-4 flex gap-3 hover:bg-amber-50 transition-colors cursor-pointer">
                                 <div className="w-2 h-2 rounded-full bg-amber-500 mt-2 flex-shrink-0"></div>
                                 <div>
-                                    <p className="text-sm font-semibold text-slate-800 line-clamp-1">Budget Lapse Risk</p>
+                                    <p className="text-sm font-semibold text-slate-800 line-clamp-1">{t('dashboard.attention.lapseRisk')}</p>
                                     <p className="text-xs text-slate-500 leading-relaxed mt-1">
-                                        {lapseSummary.critical} departments at critical risk of budget lapse
+                                        {t('dashboard.attention.lapseRiskDesc', { count: lapseSummary.critical })}
                                     </p>
                                 </div>
                             </Link>
