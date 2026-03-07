@@ -194,4 +194,5 @@ if __name__ == "__main__":
         reload=reload,
         workers=workers,
         log_level="info",
+        reload_excludes=["logs/*", "logs/**", "*.log"]
     )

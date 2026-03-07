@@ -1,14 +1,13 @@
 import axios from 'axios';
-
-const API_BASE_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000';
+import { API_ORIGIN } from './apiConfig';
 
 export const api = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: API_ORIGIN,
   timeout: 15000,
 });
 
 api.interceptors.request.use((config) => {
-  const token = localStorage.getItem('auth_token');
+  const token = localStorage.getItem('meticura_token');
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }

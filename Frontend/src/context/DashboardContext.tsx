@@ -1,6 +1,7 @@
 import React, { createContext, useContext, useState, useCallback } from 'react';
 import type { ReactNode } from 'react';
 import { useAuth } from './AuthContext';
+import { buildApiUrl } from '../lib/apiConfig';
 
 interface DashboardContextType {
     budgetOverview: any;
@@ -11,9 +12,6 @@ interface DashboardContextType {
 }
 
 const DashboardContext = createContext<DashboardContextType>({} as DashboardContextType);
-
-// Helper for API calls
-const API_BASE = 'http://localhost:8000/api';
 
 export const DashboardProvider = ({ children }: { children: ReactNode }) => {
     useAuth();
@@ -28,9 +26,9 @@ export const DashboardProvider = ({ children }: { children: ReactNode }) => {
             const headers = { 'Authorization': `Bearer ${localStorage.getItem('meticura_token')}` };
 
             const [budgetRes, anomaliesRes, lapseRes] = await Promise.all([
-                fetch(`${API_BASE}/budget/overview`, { headers }),
-                fetch(`${API_BASE}/anomalies/critical?limit=5`, { headers }),
-                fetch(`${API_BASE}/lapse/summary`, { headers })
+                fetch(buildApiUrl('/budget/overview'), { headers }),
+                fetch(buildApiUrl('/anomalies/critical?limit=5'), { headers }),
+                fetch(buildApiUrl('/lapse/summary'), { headers })
             ]);
 
             if (budgetRes.ok) {

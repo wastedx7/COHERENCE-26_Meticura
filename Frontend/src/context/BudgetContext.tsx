@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8000/api';
+import { buildApiUrl } from '../lib/apiConfig';
 
 const normalizeBudgetRow = (row: any) => ({
     id: row.department_id ?? row.id,
@@ -44,7 +43,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchOverview = async () => {
         try {
-            const res = await fetch(`${API_BASE}/budget/overview`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl('/budget/overview'), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 const summary = data?.summary || {};
@@ -65,8 +64,8 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
         setIsLoading(true);
         try {
             const url = status === 'all'
-                ? `${API_BASE}/budget/?limit=50&offset=0`
-                : `${API_BASE}/budget/by-status/${status}?limit=50`;
+                ? buildApiUrl('/budget/?limit=50&offset=0')
+                : buildApiUrl(`/budget/by-status/${status}?limit=50`);
             const res = await fetch(url, { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
@@ -85,7 +84,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     const fetchDeptDetail = async (id: number) => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/budget/department/${id}`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl(`/budget/department/${id}`), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 setSelectedDept(normalizeBudgetRow(data));
@@ -100,13 +99,13 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     const fetchComparison = async (ids: number[]) => {
         if (!ids.length) return;
         const query = ids.map((id) => `dept_ids=${id}`).join('&');
-        await fetch(`${API_BASE}/budget/comparison?${query}`, { headers: getHeaders() });
+        await fetch(buildApiUrl(`/budget/comparison?${query}`), { headers: getHeaders() });
     };
 
     const fetchForecast = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/budget/forecast?limit=20`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl('/budget/forecast?limit=20'), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 const rows = data?.forecast || [];
@@ -136,7 +135,7 @@ export const BudgetProvider = ({ children }: { children: ReactNode }) => {
     const fetchTopUtilization = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/budget/top-utilization?limit=10`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl('/budget/top-utilization?limit=10'), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 setDepartments((data?.top_utilization || []).map(normalizeBudgetRow));

@@ -7,7 +7,7 @@ from sqlalchemy.orm import Session
 
 from database import get_db
 from database.models import User, UserRole
-from auth.models import UserRegisterRequest, UserLoginRequest, TokenResponse, UserResponse, AuthenticatedUser
+from auth.models import UserRegisterRequest, UserLoginRequest, TokenResponse, UserResponse, AuthenticatedUser, PasswordResetRequest
 from auth.utils import hash_password, verify_password, create_access_token
 from auth.dependencies import get_current_user, require_auth
 
@@ -150,4 +150,48 @@ async def logout():
     token blacklisting could be implemented here.
     """
     return {"message": "Logged out successfully"}
+
+
+@router.post("/reset-password")
+async def reset_password(
+    request: PasswordResetRequest,
+    user: AuthenticatedUser = Depends(require_auth),
+    db: Session = Depends(get_db)
+):
+    """
+    Reset user password (authenticated users only)
+    
+    Args:
+        request: Password reset request with old and new passwords
+    
+    Returns:
+        Success message
+    """
+    # Get user from database
+    db_user = db.query(User).filter(User.id == user.id).first()
+    
+    if not db_user:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="User not found"
+        )
+    
+    # Verify old password
+    if not verify_password(request.old_password, db_user.password_hash):
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED,
+            detail="Current password is incorrect"
+        )
+    
+    # Update password with new hash
+    db_user.password_hash = hash_password(request.new_password)
+    db_user.updated_at = datetime.utcnow()
+    
+    db.commit()
+    db.refresh(db_user)
+    
+    return {
+        "success": True,
+        "message": "Password updated successfully"
+    }
 

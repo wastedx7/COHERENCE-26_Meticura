@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8000/api';
+import { buildApiUrl } from '../lib/apiConfig';
 
 const normalizeSuggestion = (row: any) => ({
     id: row.id,
@@ -50,12 +49,12 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
     const fetchSuggestions = async (status: string = 'pending') => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/reallocation/suggestions?status=${status}&limit=50`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl(`/reallocation/suggestions?status=${status}&limit=50`), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 setSuggestions((Array.isArray(data) ? data : []).map(normalizeSuggestion));
             }
-            const sumRes = await fetch(`${API_BASE}/reallocation/summary`, { headers: getHeaders() });
+            const sumRes = await fetch(buildApiUrl('/reallocation/summary'), { headers: getHeaders() });
             if (sumRes.ok) {
                 const data = await sumRes.json();
                 setSummary({
@@ -73,14 +72,14 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
     const fetchSuggestion = async (id: number) => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/reallocation/suggestion/${id}`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl(`/reallocation/suggestion/${id}`), { headers: getHeaders() });
             if (res.ok) setSelectedSuggestion(normalizeSuggestion(await res.json()));
         } catch (e) { console.error(e); } finally { setIsLoading(false); }
     };
 
     const approve = async (id: number, notes: string) => {
         try {
-            const res = await fetch(`${API_BASE}/reallocation/suggestion/${id}/approve`, {
+            const res = await fetch(buildApiUrl(`/reallocation/suggestion/${id}/approve`), {
                 method: 'POST',
                 headers: getHeaders(),
                 body: JSON.stringify({ notes })
@@ -91,7 +90,7 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
 
     const reject = async (id: number, reason: string) => {
         try {
-            const res = await fetch(`${API_BASE}/reallocation/suggestion/${id}/reject`, {
+            const res = await fetch(buildApiUrl(`/reallocation/suggestion/${id}/reject`), {
                 method: 'POST',
                 headers: getHeaders(),
                 body: JSON.stringify({ reason })
@@ -102,7 +101,7 @@ export const ReallocationProvider = ({ children }: { children: ReactNode }) => {
 
     const execute = async (id: number) => {
         try {
-            const res = await fetch(`${API_BASE}/reallocation/suggestion/${id}/execute`, {
+            const res = await fetch(buildApiUrl(`/reallocation/suggestion/${id}/execute`), {
                 method: 'POST',
                 headers: getHeaders()
             });

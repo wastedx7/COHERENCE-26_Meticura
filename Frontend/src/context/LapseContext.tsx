@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8000/api';
+import { buildApiUrl } from '../lib/apiConfig';
 
 const normalizeLapseRow = (row: any) => {
     const deptId = row.dept_id ?? row.department_id;
@@ -44,7 +43,7 @@ export const LapseProvider = ({ children }: { children: ReactNode }) => {
     const fetchAll = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/lapse/`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl('/lapse/'), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 setPredictions((data?.data || []).map(normalizeLapseRow));
@@ -54,7 +53,7 @@ export const LapseProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchSummary = async () => {
         try {
-            const res = await fetch(`${API_BASE}/lapse/summary`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl('/lapse/summary'), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 const risk = data?.summary?.by_risk_level || {};
@@ -72,7 +71,7 @@ export const LapseProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchCritical = async () => {
         try {
-            const res = await fetch(`${API_BASE}/lapse/critical?limit=10`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl('/lapse/critical?limit=10'), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 setCritical((data?.data || []).map(normalizeLapseRow));
@@ -82,7 +81,7 @@ export const LapseProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchDeptPrediction = async (id: number) => {
         try {
-            const res = await fetch(`${API_BASE}/lapse/department/${id}`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl(`/lapse/department/${id}`), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 const p = data?.prediction || {};

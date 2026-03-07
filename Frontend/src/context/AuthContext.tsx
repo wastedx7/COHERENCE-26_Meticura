@@ -1,4 +1,5 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
+import { buildApiUrl } from '../lib/apiConfig';
 
 type UserRole = 'admin' | 'manager' | 'analyst' | 'viewer';
 
@@ -24,7 +25,6 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType>({} as AuthContextType);
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
 const TOKEN_KEY = 'meticura_token';
 
 const getTokenHeaders = (token: string) => ({
@@ -48,7 +48,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
                     return;
                 }
 
-                const response = await fetch(`${API_BASE}/users/me`, {
+                const response = await fetch(buildApiUrl('/users/me'), {
                     headers: getTokenHeaders(token),
                 });
 
@@ -86,7 +86,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     const login = async (email: string, password: string): Promise<void> => {
         setError(null);
         try {
-            const response = await fetch(`${API_BASE}/auth/login`, {
+            const response = await fetch(buildApiUrl('/auth/login'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({ email, password }),
@@ -133,7 +133,7 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
     ): Promise<void> => {
         setError(null);
         try {
-            const response = await fetch(`${API_BASE}/auth/register`, {
+            const response = await fetch(buildApiUrl('/auth/register'), {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify({

@@ -1,7 +1,6 @@
 import React, { createContext, useContext, useState } from 'react';
 import type { ReactNode } from 'react';
-
-const API_BASE = (import.meta.env.VITE_API_BASE_URL as string | undefined) || 'http://localhost:8000/api';
+import { buildApiUrl } from '../lib/apiConfig';
 
 const normalizeDetection = (payload: any) => {
     const detection = payload?.detection || payload;
@@ -63,13 +62,13 @@ export const AnomalyProvider = ({ children }: { children: ReactNode }) => {
     const fetchAll = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/anomalies/?limit=100`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl('/anomalies/?limit=100'), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 const rows = data?.data || [];
                 setAnomalies(rows.map(normalizeDetection));
             }
-            const sumRes = await fetch(`${API_BASE}/anomalies/summary`, { headers: getHeaders() });
+            const sumRes = await fetch(buildApiUrl('/anomalies/summary'), { headers: getHeaders() });
             if (sumRes.ok) {
                 const data = await sumRes.json();
                 const verdict = data?.summary?.by_verdict || {};
@@ -86,7 +85,7 @@ export const AnomalyProvider = ({ children }: { children: ReactNode }) => {
     const fetchCritical = async () => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/anomalies/critical?limit=50`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl('/anomalies/critical?limit=50'), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 const rows = data?.data || [];
@@ -98,7 +97,7 @@ export const AnomalyProvider = ({ children }: { children: ReactNode }) => {
     const fetchDeptAnomaly = async (id: number) => {
         setIsLoading(true);
         try {
-            const res = await fetch(`${API_BASE}/anomalies/department/${id}`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl(`/anomalies/department/${id}`), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 setSelectedDeptAnomaly(normalizeDetection(data));
@@ -108,7 +107,7 @@ export const AnomalyProvider = ({ children }: { children: ReactNode }) => {
 
     const fetchRules = async () => {
         try {
-            const res = await fetch(`${API_BASE}/anomalies/rules`, { headers: getHeaders() });
+            const res = await fetch(buildApiUrl('/anomalies/rules'), { headers: getHeaders() });
             if (res.ok) {
                 const data = await res.json();
                 setRules(data?.rules || []);
@@ -119,7 +118,7 @@ export const AnomalyProvider = ({ children }: { children: ReactNode }) => {
     const rescanDept = async (id: number) => {
         // rescan logic
         try {
-            await fetch(`${API_BASE}/anomalies/rescan/${id}`, { method: 'POST', headers: getHeaders() });
+            await fetch(buildApiUrl(`/anomalies/rescan/${id}`), { method: 'POST', headers: getHeaders() });
             await fetchDeptAnomaly(id);
         } catch (e) { console.error(e); }
     };

@@ -1,8 +1,7 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { Mail, Lock, User, Phone, AlertCircle, CheckCircle } from 'lucide-react';
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000/api';
+import { buildApiUrl } from '../../lib/apiConfig';
 
 interface FormData {
   fullName: string;
@@ -103,7 +102,7 @@ export default function SignUpPage() {
     setErrors({ submit: undefined });
 
     try {
-      const response = await fetch(`${API_BASE}/auth/register`, {
+      const response = await fetch(buildApiUrl('/auth/register'), {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
