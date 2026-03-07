@@ -1,0 +1,67 @@
+{
+  "rows": {
+    "features": 500,
+    "scored_features": 200,
+    "budget_allocations": 1000,
+    "transactions": 121025
+  },
+  "columns": {
+    "features": [
+      "dept_id",
+      "fiscal_year",
+      "spend_velocity",
+      "utilization_pct",
+      "days_since_last_txn",
+      "daily_variance",
+      "end_period_spike_ratio",
+      "transaction_count",
+      "avg_transaction_size",
+      "budget_remaining_ratio",
+      "days_into_fiscal_year"
+    ],
+    "scored_features": [
+      "dept_id",
+      "fiscal_year",
+      "spend_velocity",
+      "utilization_pct",
+      "days_since_last_txn",
+      "daily_variance",
+      "end_period_spike_ratio",
+      "transaction_count",
+      "avg_transaction_size",
+      "budget_remaining_ratio",
+      "days_into_fiscal_year",
+      "anomaly_score",
+      "outlier_flag",
+      "is_anomaly"
+    ],
+    "budget_allocations": [
+      "dept_id",
+      "fiscal_year",
+      "total_amount"
+    ],
+    "transactions": [
+      "dept_id",
+      "amount",
+      "date",
+      "category",
+      "description"
+    ]
+  },
+  "descriptions": {
+    "dept_id": "Unique department identifier",
+    "fiscal_year": "Fiscal year for feature snapshot",
+    "spend_velocity": "Average spend per day",
+    "utilization_pct": "Budget utilization percentage",
+    "days_since_last_txn": "Inactivity indicator (days)",
+    "daily_variance": "Volatility in daily transaction spend",
+    "end_period_spike_ratio": "Concentration of spend at period end",
+    "transaction_count": "Number of transactions in period",
+    "avg_transaction_size": "Average transaction amount",
+    "budget_remaining_ratio": "Unspent budget share (0-1)",
+    "days_into_fiscal_year": "Progress in fiscal timeline",
+    "anomaly_score": "Isolation forest anomaly score",
+    "outlier_flag": "Model outlier flag (-1 anomalous, 1 normal)",
+    "is_anomaly": "Final anomaly label (1 anomalous, 0 normal)"
+  }
+}
