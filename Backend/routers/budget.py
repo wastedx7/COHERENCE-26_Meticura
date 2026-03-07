@@ -98,6 +98,76 @@ def get_department_budget_summary(db: Session, dept_id: int) -> Optional[BudgetS
     )
 
 
+def get_all_budget_summaries(db: Session) -> List[BudgetSummary]:
+    """
+    Get budget summaries for ALL departments in a single efficient query.
+    Uses subquery JOINs instead of N+1 per-department queries.
+    """
+    # Subquery: latest fiscal year per department
+    latest_year_sq = db.query(
+        BudgetAllocation.dept_id.label("dept_id"),
+        func.max(BudgetAllocation.fiscal_year).label("max_year")
+    ).group_by(BudgetAllocation.dept_id).subquery()
+
+    # Subquery: latest allocation amount per department
+    latest_alloc_sq = db.query(
+        BudgetAllocation.dept_id.label("dept_id"),
+        BudgetAllocation.total_amount.label("allocated")
+    ).join(
+        latest_year_sq,
+        and_(
+            BudgetAllocation.dept_id == latest_year_sq.c.dept_id,
+            BudgetAllocation.fiscal_year == latest_year_sq.c.max_year,
+        )
+    ).subquery()
+
+    # Subquery: total spending per department
+    spent_sq = db.query(
+        Transaction.dept_id.label("dept_id"),
+        func.sum(Transaction.amount).label("spent")
+    ).group_by(Transaction.dept_id).subquery()
+
+    # Main query: departments LEFT JOIN allocations LEFT JOIN spending
+    rows = db.query(
+        Department.dept_id,
+        Department.name,
+        func.coalesce(latest_alloc_sq.c.allocated, 0.0).label("allocated"),
+        func.coalesce(spent_sq.c.spent, 0.0).label("spent"),
+    ).outerjoin(
+        latest_alloc_sq,
+        latest_alloc_sq.c.dept_id == Department.dept_id,
+    ).outerjoin(
+        spent_sq,
+        spent_sq.c.dept_id == Department.dept_id,
+    ).all()
+
+    summaries = []
+    for row in rows:
+        allocated = float(row.allocated or 0)
+        spent = float(row.spent or 0)
+        remaining = allocated - spent
+        utilization_pct = (spent / allocated * 100) if allocated > 0 else 0
+
+        if utilization_pct > 100:
+            status = 'exceeded'
+        elif utilization_pct > 90:
+            status = 'at-risk'
+        else:
+            status = 'on-track'
+
+        summaries.append(BudgetSummary(
+            dept_id=row.dept_id,
+            dept_name=row.name,
+            allocated=allocated,
+            spent=spent,
+            remaining=remaining,
+            utilization_pct=utilization_pct,
+            status=status,
+        ))
+
+    return summaries
+
+
 # ============================================================================
 # Endpoints
 # ============================================================================
@@ -273,13 +343,8 @@ def get_departments_by_status(
                 detail=f"Invalid status. Must be one of: {', '.join(valid_statuses)}"
             )
         
-        departments = db.query(Department).all()
-        result = []
-        
-        for dept in departments:
-            summary = get_department_budget_summary(db, dept.dept_id)
-            if summary and summary.status == status:
-                result.append(summary.to_dict())
+        all_summaries = get_all_budget_summaries(db)
+        result = [s.to_dict() for s in all_summaries if s.status == status]
         
         # Sort by utilization (descending)
         result = sorted(result, key=lambda x: x['utilization_percentage'], reverse=True)
@@ -307,13 +372,7 @@ def get_top_utilization(
     Useful for identifying departments approaching or exceeding budget
     """
     try:
-        departments = db.query(Department).all()
-        summaries = []
-        
-        for dept in departments:
-            summary = get_department_budget_summary(db, dept.dept_id)
-            if summary:
-                summaries.append(summary)
+        summaries = get_all_budget_summaries(db)
         
         # Sort by utilization (highest first)
         summaries = sorted(summaries, key=lambda x: x.utilization_percentage, reverse=True)
@@ -347,12 +406,13 @@ def compare_departments(
         if len(dept_ids) > 20:
             raise HTTPException(status_code=400, detail="Maximum 20 departments for comparison")
         
-        comparison = []
-        
-        for dept_id in dept_ids:
-            summary = get_department_budget_summary(db, dept_id)
-            if summary:
-                comparison.append(summary.to_dict())
+        # Batch-fetch all summaries and filter by requested IDs
+        all_summaries = get_all_budget_summaries(db)
+        summary_map = {s.department_id: s for s in all_summaries}
+        comparison = [
+            summary_map[did].to_dict()
+            for did in dept_ids if did in summary_map
+        ]
         
         # Calculate statistics
         if comparison:
@@ -398,10 +458,14 @@ def budget_forecast(
             desc(LaspePrediction.risk_score)
         ).limit(limit).all()
         
+        # Batch-fetch all budget summaries for efficient lookup
+        all_summaries = get_all_budget_summaries(db)
+        summary_map = {s.department_id: s for s in all_summaries}
+        
         forecast = []
         
         for pred in lapse_preds:
-            summary = get_department_budget_summary(db, pred.dept_id)
+            summary = summary_map.get(pred.dept_id)
             
             if summary:
                 forecast.append({
@@ -440,14 +504,11 @@ def list_all_budgets(
     - status: Optional filter by status
     """
     try:
-        departments = db.query(Department).all()
-        all_budgets = []
-        
-        for dept in departments:
-            summary = get_department_budget_summary(db, dept.dept_id)
-            if summary:
-                if status is None or summary.status == status:
-                    all_budgets.append(summary.to_dict())
+        all_summaries = get_all_budget_summaries(db)
+        all_budgets = [
+            s.to_dict() for s in all_summaries
+            if status is None or s.status == status
+        ]
         
         # Sort by utilization (descending)
         all_budgets = sorted(all_budgets, key=lambda x: x['utilization_percentage'], reverse=True)
