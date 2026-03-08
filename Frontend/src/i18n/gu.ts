@@ -244,7 +244,7 @@ const gu = {
   "models.subtitle": "એન્સેમ્બલ ML મોડેલ દેખરેખ, સરખામણી અને વ્યવસ્થાપન",
   "models.chart.title": "મોડેલ પ્રદર્શન (F1 / પ્રિસિઝન / રિકોલ %)",
   "models.chart.noData": "કોઈ મેટ્રિક ડેટા નથી",
-  "models.summary.avgF1": "סરेરાશ F1 સ્કોર",
+  "models.summary.overallAccuracy": "એકંદર ચોકસાઈ",
   "models.retrain.button": "બેચ રિટ્રેઇન શરૂ કરો",
   "models.card.setActive": "સક્રિય સેટ",
   "models.card.active": "સક્રિય",

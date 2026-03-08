@@ -92,13 +92,13 @@ export default function MyModelsPage() {
     // Build chart data from metrics
     const chartData = metrics.map(m => ({
         name: MODEL_LABELS[m.model_name]?.label?.split(' ')[0] || m.model_name,
-        f1: +(m.f1_score * 100).toFixed(1),
+        accuracy: +(m.auc_roc * 100).toFixed(1),
         precision: +(m.precision * 100).toFixed(1),
         recall: +(m.recall * 100).toFixed(1),
     }));
 
     const avgScore = metrics.length > 0
-        ? Math.round(metrics.reduce((sum, m) => sum + m.f1_score, 0) / metrics.length * 100)
+        ? Math.round(metrics.reduce((sum, m) => sum + m.auc_roc, 0) / metrics.length * 100)
         : 0;
 
     const canAdmin = role === 'admin';
@@ -136,7 +136,7 @@ export default function MyModelsPage() {
                                     <YAxis axisLine={false} tickLine={false} tick={{ fill: '#64748B', fontSize: 12 }} domain={[0, 100]} />
                                     <Tooltip cursor={{ fill: 'rgba(238, 242, 255, 0.5)' }} contentStyle={{ borderRadius: '8px', border: 'none', boxShadow: '0 4px 6px -1px rgb(0 0 0 / 0.1)' }} />
                                     <Legend />
-                                    <Line type="monotone" dataKey="f1" stroke="#6366f1" strokeWidth={3} name="F1 Score" dot={{ r: 4 }} />
+                                    <Line type="monotone" dataKey="accuracy" stroke="#6366f1" strokeWidth={3} name="Accuracy" dot={{ r: 4 }} />
                                     <Line type="monotone" dataKey="precision" stroke="#94a3b8" strokeWidth={2} name="Precision" dot={{ r: 3 }} />
                                     <Line type="monotone" dataKey="recall" stroke="#f43f5e" strokeWidth={2} name="Recall" dot={{ r: 3 }} />
                                 </LineChart>
@@ -152,7 +152,7 @@ export default function MyModelsPage() {
                     <div className="w-24 h-24 rounded-full bg-indigo-50 border-8 border-indigo-100 flex items-center justify-center mb-4">
                         <span className="text-2xl font-black text-indigo-600">{avgScore}%</span>
                     </div>
-                    <h3 className="text-lg font-bold text-slate-800">{t('models.summary.avgF1')}</h3>
+                    <h3 className="text-lg font-bold text-slate-800">{t('models.summary.overallAccuracy')}</h3>
                     <p className="text-sm text-slate-500 mt-2">
                         {activeModel ? `Active: ${MODEL_LABELS[activeModel.model_name]?.label || activeModel.model_name}` : 'No active model set'}
                     </p>
@@ -199,8 +199,8 @@ export default function MyModelsPage() {
 
                             <div className="mt-4 grid grid-cols-2 gap-2 text-xs relative z-10">
                                 <div className="bg-slate-50 rounded p-2">
-                                    <span className="text-slate-500">F1</span>
-                                    <span className="float-right font-bold text-slate-800">{(m.f1_score * 100).toFixed(1)}%</span>
+                                    <span className="text-slate-500">Accuracy</span>
+                                    <span className="float-right font-bold text-slate-800">{(m.auc_roc * 100).toFixed(1)}%</span>
                                 </div>
                                 <div className="bg-slate-50 rounded p-2">
                                     <span className="text-slate-500">AUC</span>

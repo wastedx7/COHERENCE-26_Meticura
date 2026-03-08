@@ -256,7 +256,7 @@ const hi = {
   "models.subtitle": "एन्सेम्बल ML मॉडल की निगरानी, तुलना और प्रबंधन",
   "models.chart.title": "मॉडल प्रदर्शन (F1 / परिशुद्धता / रिकॉल %)",
   "models.chart.noData": "कोई मेट्रिक डेटा उपलब्ध नहीं",
-  "models.summary.avgF1": "औसत F1 स्कोर",
+  "models.summary.overallAccuracy": "समग्र सटीकता",
   "models.retrain.button": "बैच पुनर्प्रशिक्षण शुरू करें",
   "models.card.setActive": "सक्रिय करें",
   "models.card.active": "सक्रिय",

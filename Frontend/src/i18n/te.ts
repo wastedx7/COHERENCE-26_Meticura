@@ -244,7 +244,7 @@ const te = {
   "models.subtitle": "ఎన్‌సెంబుల్ ML మోడల్‌లను పర్యవేక్షించు, పోల్చు మరియు నిర్వహించు",
   "models.chart.title": "మోడల్ పనితీరు (F1 / ఖచ్చితత్వం / రికాల్ %)",
   "models.chart.noData": "మెట్రిక్ డేటా లేదు",
-  "models.summary.avgF1": "సగటు F1 స్కోర్",
+  "models.summary.overallAccuracy": "మొత్తం ఖచ్చితత్వం",
   "models.retrain.button": "బ్యాచ్ పునఃశిక్షణ ప్రారంభించు",
   "models.card.setActive": "క్రియాశీలం చేయి",
   "models.card.active": "క్రియాశీలం",

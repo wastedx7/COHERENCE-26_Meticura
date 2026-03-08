@@ -244,7 +244,7 @@ const kn = {
   "models.subtitle": "ಎನ್‌ಸೆಂಬಲ್ ML ಮಾಡೆಲ್ ಮೇಲ್ವಿಚಾರಣೆ, ಹೋಲಿಕೆ ಮತ್ತು ನಿರ್ವಹಣೆ",
   "models.chart.title": "ಮಾಡೆಲ್ ಕಾರ್ಯಕ್ಷಮತೆ (F1 / ನಿಖರತೆ / ರಿಕಾಲ್ %)",
   "models.chart.noData": "ಮೆಟ್ರಿಕ್ ಡೇಟಾ ಇಲ್ಲ",
-  "models.summary.avgF1": "ಸರಾಸರಿ F1 ಸ್ಕೋರ್",
+  "models.summary.overallAccuracy": "ಒಟ್ಟಾರೆ ನಿಖರತೆ",
   "models.retrain.button": "ಬ್ಯಾಚ್ ಮರುತರಬೇತಿ ಆರಂಭಿಸು",
   "models.card.setActive": "ಸಕ್ರಿಯಗೊಳಿಸು",
   "models.card.active": "ಸಕ್ರಿಯ",

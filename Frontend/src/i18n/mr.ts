@@ -244,7 +244,7 @@ const mr = {
   "models.subtitle": "एन्सेम्बल ML मॉडेल देखरेख, तुलना आणि व्यवस्थापन",
   "models.chart.title": "मॉडेल कार्यप्रदर्शन (F1 / अचूकता / रिकॉल %)",
   "models.chart.noData": "मेट्रिक डेटा नाही",
-  "models.summary.avgF1": "सरासरी F1 स्कोर",
+  "models.summary.overallAccuracy": "एकूण अचूकता",
   "models.retrain.button": "बॅच पुनर्प्रशिक्षण सुरू करा",
   "models.card.setActive": "सक्रिय करा",
   "models.card.active": "सक्रिय",

@@ -256,7 +256,7 @@ const en = {
   "models.subtitle": "Monitor, compare, and manage the ensemble ML models",
   "models.chart.title": "Model Performance (F1 / Precision / Recall %)",
   "models.chart.noData": "No metric data available",
-  "models.summary.avgF1": "Average F1 Score",
+  "models.summary.overallAccuracy": "Overall Accuracy",
   "models.retrain.button": "Trigger Batch Retrain",
   "models.card.setActive": "Set Active",
   "models.card.active": "Active",

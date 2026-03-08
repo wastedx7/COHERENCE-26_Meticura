@@ -2,35 +2,12 @@ version: '3.8'
 
 services:
   # =========================================
-  # PostgreSQL Database
-  # =========================================
-  postgres:
-    image: postgres:15-alpine
-    container_name: budget_watchdog_postgres
-    environment:
-      POSTGRES_USER: budget_user
-      POSTGRES_PASSWORD: budget_password
-      POSTGRES_DB: budget_watchdog
-      POSTGRES_INITDB_ARGS: "--encoding=UTF8 --locale=en_US.UTF-8"
-    ports:
-      - "5432:5432"
-    volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./Backend/database/:/docker-entrypoint-initdb.d/
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U budget_user -d budget_watchdog"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
-    networks:
-      - budget_watchdog_network
-
-  # =========================================
   # Redis Cache & Message Broker
   # =========================================
   redis:
     image: redis:7-alpine
     container_name: budget_watchdog_redis
+    restart: unless-stopped
     ports:
       - "6379:6379"
     command: redis-server --appendonly yes
@@ -52,25 +29,27 @@ services:
       context: ./Backend
       dockerfile: Dockerfile
     container_name: budget_watchdog_backend
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://budget_user:budget_password@postgres:5432/budget_watchdog
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
-      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
-      CLERK_JWT_VERIFICATION_KEY: ${CLERK_JWT_VERIFICATION_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production-min-32-chars}
       LOG_LEVEL: INFO
       PROJECT_NAME: Budget Watchdog API
       API_V1_PREFIX: /api
+      ALLOWED_ORIGINS: '["http://localhost:3000","http://localhost:5173","http://frontend:3000","http://frontend:5173"]'
     ports:
       - "8000:8000"
     volumes:
       - ./Backend:/app
       - ./Backend/logs:/app/logs
     depends_on:
-      postgres:
-        condition: service_healthy
       redis:
         condition: service_healthy
     healthcheck:
@@ -78,6 +57,7 @@ services:
       interval: 30s
       timeout: 10s
       retries: 3
+      start_period: 15s
     networks:
       - budget_watchdog_network
     command: uvicorn main:app --host 0.0.0.0 --port 8000 --reload
@@ -90,20 +70,23 @@ services:
       context: ./Backend
       dockerfile: Dockerfile
     container_name: budget_watchdog_celery_worker
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://budget_user:budget_password@postgres:5432/budget_watchdog
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production-min-32-chars}
       LOG_LEVEL: INFO
     volumes:
       - ./Backend:/app
       - ./Backend/logs:/app/logs
     depends_on:
-      - postgres
-      - redis
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - budget_watchdog_network
     command: celery -A celery_app.celery_app worker --loglevel=info --concurrency=4
@@ -116,65 +99,50 @@ services:
       context: ./Backend
       dockerfile: Dockerfile
     container_name: budget_watchdog_celery_beat
+    restart: unless-stopped
+    env_file:
+      - .env
     environment:
-      DATABASE_URL: postgresql://budget_user:budget_password@postgres:5432/budget_watchdog
+      DATABASE_URL: ${DATABASE_URL}
       REDIS_URL: redis://redis:6379/0
       CELERY_BROKER_URL: redis://redis:6379/1
       CELERY_RESULT_BACKEND: redis://redis:6379/2
-      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY}
+      CLERK_SECRET_KEY: ${CLERK_SECRET_KEY:-}
+      SECRET_KEY: ${SECRET_KEY:-change-me-in-production-min-32-chars}
       LOG_LEVEL: INFO
     volumes:
       - ./Backend:/app
       - ./Backend/logs:/app/logs
-      - celery_beat_schedule:/app/celery_beat_schedule
     depends_on:
-      - postgres
-      - redis
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - budget_watchdog_network
-    command: celery -A celery_app.celery_app beat --loglevel=info --scheduler django_celery_beat.schedulers:DatabaseScheduler
+    command: celery -A celery_app.celery_app beat --loglevel=info --schedule=/tmp/celerybeat-schedule
 
   # =========================================
-  # React Frontend
+  # React Frontend (development)
   # =========================================
   frontend:
     build:
       context: ./Frontend
       dockerfile: Dockerfile
-      args:
-        VITE_API_BASE_URL: http://localhost:8000/api
-        VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      target: development
     container_name: budget_watchdog_frontend
+    restart: unless-stopped
     ports:
-      - "3000:3000"
       - "5173:5173"
     volumes:
       - ./Frontend:/app
       - /app/node_modules
     environment:
       VITE_API_BASE_URL: http://localhost:8000/api
-      VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY}
+      VITE_CLERK_PUBLISHABLE_KEY: ${CLERK_PUBLISHABLE_KEY:-}
     depends_on:
-      - backend
+      backend:
+        condition: service_healthy
     networks:
       - budget_watchdog_network
-    command: npm run dev
-
-  # =========================================
-  # Adminer (Database UI) - Optional
-  # =========================================
-  adminer:
-    image: adminer:latest
-    container_name: budget_watchdog_adminer
-    ports:
-      - "8080:8080"
-    depends_on:
-      - postgres
-    networks:
-      - budget_watchdog_network
-    environment:
-      ADMINER_DEFAULT_SERVER: postgres
 
   # =========================================
   # Flower (Celery UI) - Optional
@@ -184,8 +152,12 @@ services:
       context: ./Backend
       dockerfile: Dockerfile
     container_name: budget_watchdog_flower
+    restart: unless-stopped
     ports:
       - "5555:5555"
+    environment:
+      CELERY_BROKER_URL: redis://redis:6379/1
+      CELERY_RESULT_BACKEND: redis://redis:6379/2
     volumes:
       - ./Backend:/app
     depends_on:
@@ -199,11 +171,7 @@ services:
 # Volumes
 # =========================================
 volumes:
-  postgres_data:
-    driver: local
   redis_data:
-    driver: local
-  celery_beat_schedule:
     driver: local
 
 # =========================================

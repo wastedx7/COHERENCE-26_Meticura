@@ -244,7 +244,7 @@ const bn = {
   "models.subtitle": "এনসেম্বল ML মডেল পর্যবেক্ষণ, তুলনা ও ব্যবস্থাপনা",
   "models.chart.title": "মডেল কর্মক্ষমতা (F1 / নির্ভুলতা / রিকল %)",
   "models.chart.noData": "মেট্রিক তথ্য নেই",
-  "models.summary.avgF1": "গড় F1 স্কোর",
+  "models.summary.overallAccuracy": "সামগ্রিক নির্ভুলতা",
   "models.retrain.button": "ব্যাচ পুনঃপ্রশিক্ষণ শুরু",
   "models.card.setActive": "সক্রিয় করুন",
   "models.card.active": "সক্রিয়",

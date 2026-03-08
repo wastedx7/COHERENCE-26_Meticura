@@ -244,7 +244,7 @@ const ta = {
   "models.subtitle": "குழு ML மாடல்களை கண்காணிக்கவும் ஒப்பிடவும் நிர்வகிக்கவும்",
   "models.chart.title": "மாடல் செயல்திறன் (F1 / துல்லியம் / நினைவகம் %)",
   "models.chart.noData": "அளவீடு தரவு இல்லை",
-  "models.summary.avgF1": "சராசரி F1 மதிப்பெண்",
+  "models.summary.overallAccuracy": "ஒட்டுமொத்த துல்லியம்",
   "models.retrain.button": "தொகுதி மறுபயிற்சி தொடங்கு",
   "models.card.setActive": "செயலில் செய்",
   "models.card.active": "செயலில்",
